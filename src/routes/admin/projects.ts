@@ -1,6 +1,7 @@
 import { Hono } from "hono";
-import type { CreateProjectBody } from "@cfbridge/shared";
+import type { CreateProjectBody, CreateProjectResponse } from "@cfbridge/shared";
 import { requireAdmin } from "../../lib/auth";
+import { mintApiKey } from "../../lib/api-keys";
 import { generateId, generateRef, isValidRef } from "../../lib/crypto";
 import { getMeta } from "../../lib/meta";
 import {
@@ -54,17 +55,37 @@ projects.post("/", async (c) => {
   if (existing) return conflict(c, `Project ref '${ref}' already exists`);
 
   const id = generateId();
-  const anonReadonly = body.anon_readonly ? 1 : 0;
-  await getMeta(c.env).prepare(
-    `INSERT INTO projects (id, ref, name, anon_readonly) VALUES (?, ?, ?, ?)`,
-  )
+  // Default publishable keys to read-only unless explicitly opted out.
+  const anonReadonly = body.anon_readonly === false ? 0 : 1;
+  const db = getMeta(c.env);
+  await db
+    .prepare(
+      `INSERT INTO projects (id, ref, name, anon_readonly) VALUES (?, ?, ?, ?)`,
+    )
     .bind(id, ref, body.name.trim(), anonReadonly)
     .run();
 
-  const row = await getMeta(c.env).prepare("SELECT * FROM projects WHERE id = ?")
+  let publishable;
+  let secret;
+  try {
+    publishable = await mintApiKey(db, id, "default", "anon");
+    secret = await mintApiKey(db, id, "default", "service_role");
+  } catch (e) {
+    await db.prepare("DELETE FROM api_keys WHERE project_id = ?").bind(id).run();
+    await db.prepare("DELETE FROM projects WHERE id = ?").bind(id).run();
+    throw e;
+  }
+
+  const row = await db
+    .prepare("SELECT * FROM projects WHERE id = ?")
     .bind(id)
     .first<ProjectRow>();
-  return c.json({ project: toProject(row!) }, 201);
+
+  const response: CreateProjectResponse = {
+    project: toProject(row!),
+    keys: { publishable, secret },
+  };
+  return c.json(response, 201);
 });
 
 projects.get("/:id", async (c) => {

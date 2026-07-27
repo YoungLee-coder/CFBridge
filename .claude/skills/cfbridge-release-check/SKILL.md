@@ -14,7 +14,7 @@ Verify that CFBridge is ready for release.
 3. **Check version**: 确认根 `package.json` 版本（当前为 `0.1.0`）。
 4. **Manual smoke test**: 按 `README.md` curl 路径验证管理端与数据面（本地 `pnpm dev` 或 staging Worker）。
 5. **Deploy checklist**:
-   - `wrangler.toml` 无生产用 `database_id`（Meta D1 在面板绑 `META`）。
+   - `wrangler.toml` 无生产用 `database_id`（Meta D1 在面板绑 `META`）；本地用 `wrangler.dev.toml`。
    - Secrets 已在 Cloudflare 面板配置：`ADMIN_PASSWORD`、`SESSION_SECRET`、`CLOUDFLARE_ACCOUNT_ID`、`CLOUDFLARE_API_TOKEN`。
    - Setup 页可完成 schema 初始化/升级。
 6. **Security scan**: 对自上次 tag 以来的 diff 调用 `security-auditor` subagent。

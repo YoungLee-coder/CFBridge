@@ -56,7 +56,17 @@ export interface ApiKeyPublic {
 export interface CreateProjectBody {
   name: string;
   ref?: string;
+  /** Defaults to true when omitted. */
   anon_readonly?: boolean;
+}
+
+export interface CreateProjectResponse {
+  project: Project;
+  /** Plaintext keys returned only on create. */
+  keys: {
+    publishable: CreateApiKeyResponse;
+    secret: CreateApiKeyResponse;
+  };
 }
 
 export interface AttachResourceBody {
@@ -68,6 +78,17 @@ export interface AttachResourceBody {
 export interface CreateResourceBody {
   kind: "kv" | "d1";
   name: string;
+}
+
+/** Account-level Cloudflare KV namespace or D1 database for attach picker. */
+export interface CfAccountResource {
+  id: string;
+  name: string;
+}
+
+export interface ListCfResourcesResponse {
+  kind: "kv" | "d1";
+  resources: CfAccountResource[];
 }
 
 export interface CreateApiKeyBody {

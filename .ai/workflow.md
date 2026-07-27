@@ -5,17 +5,19 @@
 ```bash
 pnpm install                                    # 安装依赖
 cp .dev.vars.example .dev.vars                  # 本地 secrets（首次）
-pnpm dev                                        # wrangler :8787 + vite :5173（并行）
-pnpm dev:api                                    # 仅 Worker（需已有 dist/）
+pnpm dev                                        # wrangler :8787 + vite :5173（并行；API 用 wrangler.dev.toml）
+pnpm dev:api                                    # 仅 Worker（需已有 dist/；用 wrangler.dev.toml）
 pnpm dev:web                                    # Vite :5173，/admin 和 /v1 代理到 :8787
 pnpm build                                      # vite build → ./dist
 pnpm typecheck                                  # Worker + web typecheck
-pnpm deploy                                     # build + wrangler deploy
-pnpm db:migrate:local                           # 本地 Meta D1 迁移（需 wrangler.toml 取消注释 [[d1_databases]]）
+pnpm deploy                                     # build + wrangler deploy（用 wrangler.toml）
+pnpm db:migrate:local                           # 本地 Meta D1 迁移（wrangler.dev.toml）
 pnpm db:migrate:remote                          # 远程 Meta D1 迁移
 ```
 
 本地开发需配置根目录 `.dev.vars`：`ADMIN_PASSWORD`、`SESSION_SECRET`、`CLOUDFLARE_ACCOUNT_ID`、`CLOUDFLARE_API_TOKEN`。
+
+本地 API / 本地迁移走 `wrangler.dev.toml`（含占位 `META`）；`pnpm deploy` 走 `wrangler.toml`（无 Meta `database_id`，面板绑 `META`）。
 
 Workers Builds（Git）：Build `pnpm run build`，Deploy `npx wrangler deploy`（或 `pnpm exec wrangler deploy`）。
 

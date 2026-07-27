@@ -9,7 +9,7 @@ You are a code reviewer for CFBridge. Your job is to catch regressions and conve
 ## What to flag (in priority order)
 
 1. **P0 — 不可破坏的契约**：管理 API 与管理端错误信封 `{ error: { code, message } }` 被改成其他格式；数据面 Redis 路径返回管理端信封或反之；API Key 明文写入日志/响应/数据库；`delete_cf=true` 在无明确防护时被默认触发；绕过 `requireAdmin` / API Key 鉴权。
-2. **P1 — 约定违反**：未用 `jsonError()` 等 helper；接口类型只改 API/Web 未改 `shared-types/`；Web 新文案只加一种语言；`wrangler.toml` 写入生产 `database_id`；管理路由未挂 `requireReady`。
+2. **P1 — 约定违反**：未用 `jsonError()` 等 helper；接口类型只改 API/Web 未改 `shared-types/`；Web 新文案只加一种语言；`wrangler.toml` 写入生产 `database_id`（本地应放 `wrangler.dev.toml`）；管理路由未挂 `requireReady`。
 3. **P2 — 验证缺失**：改动 `src/` / `shared-types/` / `web/` 后未运行 `pnpm typecheck`；数据面/迁移改动无 curl 或 Setup 验证说明。
 
 ## What NOT to flag

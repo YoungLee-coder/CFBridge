@@ -1,5 +1,17 @@
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { useT } from "@/i18n";
 import { useEffect, useId, useRef, type ReactNode } from "react";
-import { useT } from "../i18n";
 
 export type ConfirmDialogProps = {
   open: boolean;
@@ -36,62 +48,45 @@ export default function ConfirmDialog({
   useEffect(() => {
     if (!open) return;
     confirmRef.current?.focus();
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && !busy) onCancel();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, busy, onCancel]);
-
-  if (!open) return null;
+  }, [open]);
 
   return (
-    <div
-      className="dialog-backdrop"
-      role="presentation"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget && !busy) onCancel();
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !busy) onCancel();
       }}
     >
-      <div
-        className="dialog"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-      >
-        <h3 id={titleId}>{title}</h3>
-        <p>{body}</p>
+      <AlertDialogContent aria-labelledby={titleId}>
+        <AlertDialogHeader>
+          <AlertDialogTitle id={titleId}>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{body}</AlertDialogDescription>
+        </AlertDialogHeader>
         {checkboxLabel && (
-          <label className="label label-inline">
-            <input
-              type="checkbox"
+          <Label className="flex items-center gap-2 text-sm font-normal">
+            <Checkbox
               checked={checkboxChecked}
               disabled={busy}
-              onChange={(e) => onCheckboxChange?.(e.target.checked)}
+              onCheckedChange={(v) => onCheckboxChange?.(v === true)}
             />
             {checkboxLabel}
-          </label>
+          </Label>
         )}
-        <div className="dialog-actions">
-          <button
-            type="button"
-            className="btn"
-            disabled={busy}
-            onClick={onCancel}
-          >
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={busy} onClick={onCancel}>
             {t("common.cancel")}
-          </button>
-          <button
+          </AlertDialogCancel>
+          <Button
             ref={confirmRef}
             type="button"
-            className={danger ? "btn btn-danger" : "btn btn-primary"}
+            variant={danger ? "destructive" : "default"}
             disabled={busy}
             onClick={onConfirm}
           >
             {busy ? t("common.processing") : (confirmLabel ?? t("common.confirm"))}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

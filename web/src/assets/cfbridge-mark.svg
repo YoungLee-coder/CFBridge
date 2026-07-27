@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- CFBridge keystone arch — monochrome mark -->
+  <path
+    fill="currentColor"
+    fill-rule="evenodd"
+    d="M8 26.5V15.2c0-4.15 3.35-7.55 7.05-8.85L16 3.4l.95 2.95C20.65 7.65 24 11.05 24 15.2v11.3H8Zm3.85 0h8.3V17.1c0-2.35-1.85-4.15-4.15-4.65-2.3.5-4.15 2.3-4.15 4.65v9.4Z"
+  />
+</svg>

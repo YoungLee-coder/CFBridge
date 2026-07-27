@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { CreateApiKeyBody } from "@cfbridge/shared";
 import { requireAdmin } from "../../lib/auth";
-import { generateApiKey, generateId, sha256Hex } from "../../lib/crypto";
+import { mintApiKey } from "../../lib/api-keys";
 import { getMeta } from "../../lib/meta";
 import { toApiKeyPublic, type ApiKeyRow } from "../../lib/db";
 import { badRequest, notFound, type AppEnv } from "../../lib/http";
@@ -40,24 +40,13 @@ keys.post("/:projectId/keys", async (c) => {
     return badRequest(c, "role must be anon or service_role");
   }
 
-  const { key, prefix } = generateApiKey(body.role);
-  const hash = await sha256Hex(key);
-  const id = generateId();
-
-  await getMeta(c.env).prepare(
-    `INSERT INTO api_keys (id, project_id, name, role, key_prefix, key_hash)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-  )
-    .bind(id, project.id, body.name.trim(), body.role, prefix, hash)
-    .run();
-
-  const row = await getMeta(c.env).prepare(
-    "SELECT id, project_id, name, role, key_prefix, created_at, revoked_at FROM api_keys WHERE id = ?",
-  )
-    .bind(id)
-    .first<ApiKeyRow>();
-
-  return c.json({ ...toApiKeyPublic(row!), key }, 201);
+  const created = await mintApiKey(
+    getMeta(c.env),
+    project.id,
+    body.name.trim(),
+    body.role,
+  );
+  return c.json(created, 201);
 });
 
 keys.post("/:projectId/keys/:keyId/revoke", async (c) => {

@@ -43,6 +43,60 @@ async function cfFetch<T>(
   return json.result as T;
 }
 
+async function cfFetchPaged<T>(env: Env, path: string): Promise<T[]> {
+  const all: T[] = [];
+  let page = 1;
+  const perPage = 100;
+  const maxPages = 50;
+
+  while (page <= maxPages) {
+    const sep = path.includes("?") ? "&" : "?";
+    const url = `${CF_API}/accounts/${env.CLOUDFLARE_ACCOUNT_ID}${path}${sep}page=${page}&per_page=${perPage}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}` },
+    });
+    const json = (await res.json()) as {
+      success: boolean;
+      errors?: Array<{ message?: string; code?: number }>;
+      result?: T[];
+      result_info?: {
+        page?: number;
+        per_page?: number;
+        count?: number;
+        total_count?: number;
+      };
+    };
+
+    if (!res.ok || !json.success) {
+      const msg =
+        json.errors?.map((e) => e.message).filter(Boolean).join("; ") ||
+        `Cloudflare API error (${res.status})`;
+      throw new CfApiError(msg, res.status, json);
+    }
+
+    const batch = json.result ?? [];
+    all.push(...batch);
+
+    const totalCount = json.result_info?.total_count;
+    if (totalCount != null) {
+      if (all.length >= totalCount) break;
+    } else if (batch.length < perPage) {
+      break;
+    }
+
+    page += 1;
+    if (page > maxPages && (totalCount == null || all.length < totalCount)) {
+      throw new CfApiError(
+        `Cloudflare list truncated after ${maxPages} pages (${all.length} items)`,
+        502,
+        json,
+      );
+    }
+  }
+
+  return all;
+}
+
 export async function createKvNamespace(
   env: Env,
   title: string,
@@ -53,6 +107,12 @@ export async function createKvNamespace(
   });
 }
 
+export async function listKvNamespaces(
+  env: Env,
+): Promise<Array<{ id: string; title: string }>> {
+  return cfFetchPaged(env, "/storage/kv/namespaces");
+}
+
 export async function createD1Database(
   env: Env,
   name: string,
@@ -61,6 +121,12 @@ export async function createD1Database(
     method: "POST",
     body: JSON.stringify({ name }),
   });
+}
+
+export async function listD1Databases(
+  env: Env,
+): Promise<Array<{ uuid: string; name: string }>> {
+  return cfFetchPaged(env, "/d1/database");
 }
 
 export async function deleteKvNamespace(env: Env, namespaceId: string) {

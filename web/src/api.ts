@@ -3,7 +3,9 @@ import type {
   ApiKeyPublic,
   CreateApiKeyResponse,
   CreateMetaDbResponse,
+  CreateProjectResponse,
   InstanceSettings,
+  ListCfResourcesResponse,
   Locale,
   MigrateResponse,
   Project,
@@ -117,7 +119,7 @@ export const api = {
     ref?: string;
     anon_readonly?: boolean;
   }) {
-    return request<{ project: Project }>("/admin/projects", {
+    return request<CreateProjectResponse>("/admin/projects", {
       method: "POST",
       body: JSON.stringify(body),
     });
@@ -167,6 +169,11 @@ export const api = {
       { method: "DELETE" },
     );
   },
+  listCfResources(kind: "kv" | "d1") {
+    return request<ListCfResourcesResponse>(
+      `/admin/cloudflare/resources?kind=${kind}`,
+    );
+  },
   listKeys(projectId: string) {
     return request<{ keys: ApiKeyPublic[] }>(
       `/admin/projects/${projectId}/keys`,
@@ -184,32 +191,17 @@ export const api = {
       { method: "POST" },
     );
   },
-  // Data plane helpers for dashboard browsers (Redis REST over KV)
-  async redisCommand(ref: string, apiKey: string, argv: string[]) {
-    const path = argv.map((p) => encodeURIComponent(p)).join("/");
-    const res = await fetch(`/v1/${ref}/redis/${path}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-    const json = (await res.json()) as {
-      result?: unknown;
-      error?: string | { code?: string; message?: string };
-    };
-    const errMsg =
-      typeof json.error === "string"
-        ? json.error
-        : json.error?.message || "Redis command failed";
-    if (!res.ok || typeof json.error === "string") {
-      throw new ApiClientError(
-        res.status,
-        typeof json.error === "object" ? json.error?.code || "unknown" : "redis_error",
-        errMsg,
-      );
-    }
-    return json.result;
+  // Dashboard Redis / D1 browsers — admin session, no project API key
+  async redisCommand(projectId: string, argv: string[]) {
+    const res = await request<{ result: unknown }>(
+      `/admin/projects/${projectId}/browser/redis`,
+      { method: "POST", body: JSON.stringify({ argv }) },
+    );
+    return res.result;
   },
-  redisList(ref: string, apiKey: string, prefix = "") {
+  redisList(projectId: string, prefix = "") {
     const pattern = prefix ? `${prefix}*` : "*";
-    return this.redisCommand(ref, apiKey, ["KEYS", pattern]).then(
+    return this.redisCommand(projectId, ["KEYS", pattern]).then(
       (result) =>
         ({
           keys: (Array.isArray(result) ? result : []).map((name) => ({
@@ -223,52 +215,28 @@ export const api = {
         },
     );
   },
-  redisGet(ref: string, apiKey: string, key: string) {
-    return this.redisCommand(ref, apiKey, ["GET", key]).then((value) => ({
+  redisGet(projectId: string, key: string) {
+    return this.redisCommand(projectId, ["GET", key]).then((value) => ({
       key,
       value: value == null ? "" : String(value),
       metadata: null as unknown,
     }));
   },
-  redisSet(ref: string, apiKey: string, key: string, value: string) {
-    return this.redisCommand(ref, apiKey, ["SET", key, value]);
+  redisSet(projectId: string, key: string, value: string) {
+    return this.redisCommand(projectId, ["SET", key, value]);
   },
-  redisDelete(ref: string, apiKey: string, key: string) {
-    return this.redisCommand(ref, apiKey, ["DEL", key]);
+  redisDelete(projectId: string, key: string) {
+    return this.redisCommand(projectId, ["DEL", key]);
   },
-  d1Query(ref: string, apiKey: string, sql: string, params: unknown[] = []) {
-    return fetch(`/v1/${ref}/d1/cf/query`, {
+  d1Query(projectId: string, sql: string, params: unknown[] = []) {
+    return request<{
+      success: true;
+      errors: unknown[];
+      messages: unknown[];
+      result: unknown;
+    }>(`/admin/projects/${projectId}/browser/d1/query`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({ sql, params }),
-    }).then(async (res) => {
-      const json = (await res.json()) as {
-        success?: boolean;
-        result?: unknown;
-        errors?: Array<{ code?: number; message?: string }>;
-        error?: { code?: string; message?: string };
-      };
-      if (!res.ok || json.success === false) {
-        throw new ApiClientError(
-          res.status,
-          json.error?.code ||
-            (json.errors?.[0]?.code != null
-              ? String(json.errors[0].code)
-              : "unknown"),
-          json.errors?.[0]?.message ||
-            json.error?.message ||
-            "D1 query failed",
-        );
-      }
-      return json as {
-        success: true;
-        errors: unknown[];
-        messages: unknown[];
-        result: unknown;
-      };
     });
   },
 };

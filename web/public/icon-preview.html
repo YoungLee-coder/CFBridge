@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CFBridge — Icon Preview</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0e0e0e;
+        --panel: #171717;
+        --ink: #f2eee6;
+        --muted: #8a8680;
+        --line: rgba(242, 238, 230, 0.1);
+        --steel: #5b7c99;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+        background:
+          radial-gradient(ellipse at 20% 0%, rgba(91, 124, 153, 0.12), transparent 50%),
+          var(--bg);
+        color: var(--ink);
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 48px 24px 80px;
+      }
+      h1 {
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 8px;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, sans-serif;
+      }
+      .title {
+        font-size: clamp(2rem, 5vw, 3rem);
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        margin: 0 0 8px;
+      }
+      .sub {
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, sans-serif;
+        font-size: 14px;
+        color: var(--muted);
+        margin: 0 0 48px;
+        max-width: 42ch;
+        line-height: 1.5;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 28px 20px 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        min-height: 220px;
+      }
+      .card.light {
+        background: #f2eee6;
+        color: #141414;
+      }
+      .card.checker {
+        background:
+          linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
+          linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #2a2a2a 75%),
+          linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
+        background-size: 16px 16px;
+        background-position:
+          0 0,
+          0 8px,
+          8px -8px,
+          -8px 0;
+        background-color: #1c1c1c;
+      }
+      .label {
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, sans-serif;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .card.light .label {
+        color: #6b6760;
+      }
+      .sizes {
+        display: flex;
+        align-items: flex-end;
+        gap: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .size-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+      .size-item span {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .row {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      @media (max-width: 640px) {
+        .row {
+          grid-template-columns: 1fr;
+        }
+      }
+      .wide {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 32px;
+        min-height: auto;
+        padding: 36px 28px;
+      }
+      .lockup {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .lockup strong {
+        font-size: 22px;
+        font-weight: 400;
+        letter-spacing: -0.02em;
+      }
+      .lockup small {
+        display: block;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, sans-serif;
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .mark {
+        width: 96px;
+        height: 96px;
+      }
+      .mark-sm {
+        width: 32px;
+        height: 32px;
+      }
+      .tile {
+        width: 64px;
+        height: 64px;
+        border-radius: 14px;
+        display: block;
+      }
+      .favicon-demo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #222;
+        border-radius: 10px 10px 0 0;
+        padding: 10px 14px;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, sans-serif;
+        font-size: 12px;
+        color: #bbb;
+        border: 1px solid var(--line);
+        width: min(360px, 100%);
+      }
+      .favicon-demo img {
+        width: 16px;
+        height: 16px;
+      }
+      .tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #2c2c2c;
+        padding: 6px 12px;
+        border-radius: 8px 8px 0 0;
+        color: var(--ink);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>CFBridge Identity</h1>
+      <p class="title">Keystone Arch</p>
+      <p class="sub">
+        拱心石拱桥——承重、连接、门户。单色可伸缩，黑白反转皆成立。
+      </p>
+
+      <div class="grid">
+        <div class="card checker">
+          <div class="label">App Icon · Transparent</div>
+          <img class="tile" src="/icon.svg" alt="CFBridge app icon" width="64" height="64" style="background: transparent; border-radius: 0" />
+        </div>
+
+        <div class="card checker">
+          <div class="label">Mark · Ivory</div>
+          <svg class="mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path
+              fill="#F2EEE6"
+              fill-rule="evenodd"
+              d="M8 26.5V15.2c0-4.15 3.35-7.55 7.05-8.85L16 3.4l.95 2.95C20.65 7.65 24 11.05 24 15.2v11.3H8Zm3.85 0h8.3V17.1c0-2.35-1.85-4.15-4.15-4.65-2.3.5-4.15 2.3-4.15 4.65v9.4Z"
+            />
+          </svg>
+        </div>
+
+        <div class="card light">
+          <div class="label">Mark · Dark</div>
+          <svg class="mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path
+              fill="#141414"
+              fill-rule="evenodd"
+              d="M8 26.5V15.2c0-4.15 3.35-7.55 7.05-8.85L16 3.4l.95 2.95C20.65 7.65 24 11.05 24 15.2v11.3H8Zm3.85 0h8.3V17.1c0-2.35-1.85-4.15-4.15-4.65-2.3.5-4.15 2.3-4.15 4.65v9.4Z"
+            />
+          </svg>
+        </div>
+
+        <div class="card">
+          <div class="label">Steel accent</div>
+          <svg class="mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path
+              fill="#5B7C99"
+              fill-rule="evenodd"
+              d="M8 26.5V15.2c0-4.15 3.35-7.55 7.05-8.85L16 3.4l.95 2.95C20.65 7.65 24 11.05 24 15.2v11.3H8Zm3.85 0h8.3V17.1c0-2.35-1.85-4.15-4.15-4.65-2.3.5-4.15 2.3-4.15 4.65v9.4Z"
+            />
+          </svg>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="card wide">
+          <div class="label" style="width: 100%; text-align: center">Scale</div>
+          <div class="sizes">
+            <div class="size-item">
+              <img src="/favicon.svg" width="16" height="16" alt="" />
+              <span>16</span>
+            </div>
+            <div class="size-item">
+              <img src="/favicon.svg" width="24" height="24" alt="" />
+              <span>24</span>
+            </div>
+            <div class="size-item">
+              <img src="/favicon.svg" width="32" height="32" alt="" />
+              <span>32</span>
+            </div>
+            <div class="size-item">
+              <img src="/icon.svg" width="48" height="48" alt="" />
+              <span>48</span>
+            </div>
+            <div class="size-item">
+              <img src="/icon.svg" width="64" height="64" alt="" />
+              <span>64</span>
+            </div>
+            <div class="size-item">
+              <img src="/icon.svg" width="96" height="96" alt="" />
+              <span>96</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card wide">
+          <div>
+            <div class="label" style="margin-bottom: 16px">Wordmark lockup</div>
+            <div class="lockup">
+              <svg width="48" height="48" viewBox="0 0 32 32" fill="none" aria-hidden="true" style="flex-shrink: 0">
+                <path
+                  fill="#F2EEE6"
+                  fill-rule="evenodd"
+                  d="M8 26.5V15.2c0-4.15 3.35-7.55 7.05-8.85L16 3.4l.95 2.95C20.65 7.65 24 11.05 24 15.2v11.3H8Zm3.85 0h8.3V17.1c0-2.35-1.85-4.15-4.15-4.65-2.3.5-4.15 2.3-4.15 4.65v9.4Z"
+                />
+              </svg>
+              <div>
+                <strong>CFBridge</strong>
+                <small>Cloudflare Gateway</small>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="label" style="margin-bottom: 16px">Browser tab</div>
+            <div class="favicon-demo">
+              <div class="tab">
+                <img src="/favicon.svg" alt="" />
+                CFBridge
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

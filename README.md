@@ -33,13 +33,11 @@ cp .dev.vars.example .dev.vars
 
 ### 2. 本地 Meta D1（仅本地开发）
 
-编辑根目录 `wrangler.toml`，取消注释底部的 `[[d1_databases]]` 本地占位块，然后：
+本地开发使用 `wrangler.dev.toml`（含占位 `META` 绑定）；生产部署用 `wrangler.toml`（无 `database_id`，靠面板绑库）。
 
 ```bash
 pnpm db:migrate:local
 ```
-
-生产环境请**不要**在 toml 里写 `database_id`，改在 Cloudflare 面板绑定（见下方「部署」）。
 
 ### 3. 启动（单个 Worker：API + Dashboard）
 
@@ -67,7 +65,7 @@ TOKEN=$(curl -s "$API/admin/auth/login" \
   -H 'Content-Type: application/json' \
   -d '{"password":"change-me"}' | jq -r .token)
 
-# 创建项目
+# 创建项目（自动签发可公开 + 服务端密钥，明文只返回这一次）
 PROJECT=$(curl -s "$API/admin/projects" \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
@@ -75,6 +73,7 @@ PROJECT=$(curl -s "$API/admin/projects" \
 echo "$PROJECT" | jq
 PROJECT_ID=$(echo "$PROJECT" | jq -r .project.id)
 REF=$(echo "$PROJECT" | jq -r .project.ref)
+API_KEY=$(echo "$PROJECT" | jq -r .keys.secret.key)
 
 # 挂载已有 KV + D1（也可用 /resources/create 新建）
 curl -s "$API/admin/projects/$PROJECT_ID/resources/attach" \
@@ -87,13 +86,9 @@ curl -s "$API/admin/projects/$PROJECT_ID/resources/attach" \
   -H 'Content-Type: application/json' \
   -d '{"kind":"d1","cf_id":"YOUR_D1_DATABASE_UUID","name":"demo-d1"}' | jq
 
-# 签发 service_role Key（明文只显示一次）
-KEY_RES=$(curl -s "$API/admin/projects/$PROJECT_ID/keys" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"server","role":"service_role"}')
-API_KEY=$(echo "$KEY_RES" | jq -r .key)
-echo "$API_KEY"
+# 也可稍后额外签发服务端密钥：
+# curl -s "$API/admin/projects/$PROJECT_ID/keys" -H "Authorization: Bearer $TOKEN" \
+#   -H 'Content-Type: application/json' -d '{"name":"server","role":"service_role"}'
 
 # 数据面 — Redis REST（背后是 Cloudflare KV）
 curl -s "$API/v1/$REF/redis/set/hello/world" \
@@ -266,7 +261,7 @@ await client.batch([
 
 底层走 Cloudflare D1 **`/raw`**（行是数组，重复列名不会丢）。
 
-角色：`anon` | `service_role`。若项目开启 `anon_readonly`，anon Key 不能写。
+角色：`anon`（可公开）| `service_role`（服务端）。新建项目默认签发各一把，明文只在创建时返回。新项目默认开启 `anon_readonly`，anon Key 不能写。
 
 管理端错误格式：
 
@@ -278,7 +273,7 @@ libSQL pipeline 内的语句错误落在 `results[].type === "error"`（HTTP 仍
 ## 部署（单个 Worker · 推荐面板绑库）
 
 整体打成一个名为 `cfbridge` 的 Worker：Hono API + 构建好的 Dashboard 静态资源。  
-`wrangler.toml` **故意不写** Meta D1 的 `database_id`，避免覆盖你在面板里的绑定。
+`wrangler.toml` **故意不写** Meta D1 的 `database_id`，避免覆盖你在面板里的绑定。本地开发请用 `wrangler.dev.toml`（`pnpm dev` / `pnpm db:migrate:local` 已自动指定）。
 
 ### 1. 部署 Worker
 
@@ -344,7 +339,8 @@ src/             Hono Worker（管理端 + 数据面，并托管 Dashboard 静�
 web/             Dashboard 源码（构建到根目录 dist/，作为 Worker assets 上传）
 shared-types/    共享类型 / 错误辅助（@cfbridge/shared）
 migrations/      Meta D1 schema 迁移
-wrangler.toml    Worker 配置（根目录）
+wrangler.toml    生产 Worker 配置（无 Meta database_id）
+wrangler.dev.toml 本地开发配置（占位 META 绑定）
 ```
 
 ## v1 不做

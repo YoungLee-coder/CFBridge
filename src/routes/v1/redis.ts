@@ -334,27 +334,24 @@ async function executeCommand(ctx: ExecCtx, argv: string[]): Promise<unknown> {
   }
 }
 
-async function runOne(
-  c: {
-    env: Env;
-    get: (
-      key: "projectId" | "apiKeyRole" | "anonReadonly",
-    ) => string | ApiKeyRole | boolean | undefined;
-  },
+/** Shared Redis argv runner — used by /v1 data plane and admin browser proxy. */
+export async function runRedisArgv(
+  env: Env,
+  projectId: string,
   argv: string[],
+  opts: { role?: ApiKeyRole; anonReadonly?: boolean } = {},
 ): Promise<{ result: unknown } | { error: string }> {
   try {
-    const projectId = c.get("projectId") as string;
-    const resource = await getKvResource(getMeta(c.env), projectId);
+    const resource = await getKvResource(getMeta(env), projectId);
     if (!resource) {
       throw new RedisCmdError("ERR no KV resource on this project");
     }
     const result = await executeCommand(
       {
-        env: c.env,
+        env,
         namespaceId: resource.cf_id,
-        role: c.get("apiKeyRole") as ApiKeyRole | undefined,
-        anonReadonly: c.get("anonReadonly") as boolean | undefined,
+        role: opts.role,
+        anonReadonly: opts.anonReadonly,
       },
       argv,
     );
@@ -366,6 +363,21 @@ async function runOne(
       error: `ERR ${e instanceof Error ? e.message : "internal error"}`,
     };
   }
+}
+
+async function runOne(
+  c: {
+    env: Env;
+    get: (
+      key: "projectId" | "apiKeyRole" | "anonReadonly",
+    ) => string | ApiKeyRole | boolean | undefined;
+  },
+  argv: string[],
+): Promise<{ result: unknown } | { error: string }> {
+  return runRedisArgv(c.env, c.get("projectId") as string, argv, {
+    role: c.get("apiKeyRole") as ApiKeyRole | undefined,
+    anonReadonly: c.get("anonReadonly") as boolean | undefined,
+  });
 }
 
 function decodeParts(raw: string): string[] {
