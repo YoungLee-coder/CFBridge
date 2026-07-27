@@ -13,14 +13,41 @@ export class CfApiError extends Error {
   }
 }
 
+/** Fail before calling Cloudflare so missing secrets never become `/accounts/undefined/...`. */
+function requireCfCredentials(env: Env): {
+  accountId: string;
+  apiToken: string;
+} {
+  const accountId = env.CLOUDFLARE_ACCOUNT_ID;
+  const apiToken = env.CLOUDFLARE_API_TOKEN;
+  if (
+    !accountId ||
+    accountId === "your_account_id" ||
+    !apiToken ||
+    apiToken === "your_api_token"
+  ) {
+    throw new CfApiError(
+      "CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN not configured. Set them in .dev.vars (local) or Worker secrets (deployed), then restart the Worker.",
+      503,
+    );
+  }
+  return { accountId, apiToken };
+}
+
+function accountUrl(env: Env, path: string): string {
+  const { accountId } = requireCfCredentials(env);
+  return `${CF_API}/accounts/${accountId}${path}`;
+}
+
 async function cfFetch<T>(
   env: Env,
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const url = `${CF_API}/accounts/${env.CLOUDFLARE_ACCOUNT_ID}${path}`;
+  const { apiToken } = requireCfCredentials(env);
+  const url = accountUrl(env, path);
   const headers = new Headers(init.headers);
-  headers.set("Authorization", `Bearer ${env.CLOUDFLARE_API_TOKEN}`);
+  headers.set("Authorization", `Bearer ${apiToken}`);
   if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
@@ -44,6 +71,7 @@ async function cfFetch<T>(
 }
 
 async function cfFetchPaged<T>(env: Env, path: string): Promise<T[]> {
+  const { apiToken } = requireCfCredentials(env);
   const all: T[] = [];
   let page = 1;
   const perPage = 100;
@@ -51,9 +79,9 @@ async function cfFetchPaged<T>(env: Env, path: string): Promise<T[]> {
 
   while (page <= maxPages) {
     const sep = path.includes("?") ? "&" : "?";
-    const url = `${CF_API}/accounts/${env.CLOUDFLARE_ACCOUNT_ID}${path}${sep}page=${page}&per_page=${perPage}`;
+    const url = `${accountUrl(env, path)}${sep}page=${page}&per_page=${perPage}`;
     const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}` },
+      headers: { Authorization: `Bearer ${apiToken}` },
     });
     const json = (await res.json()) as {
       success: boolean;
@@ -144,9 +172,13 @@ export async function kvGet(
   namespaceId: string,
   key: string,
 ): Promise<{ value: string | null; metadata: unknown }> {
-  const url = `${CF_API}/accounts/${env.CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${namespaceId}/values/${encodeURIComponent(key)}`;
+  const { apiToken } = requireCfCredentials(env);
+  const url = accountUrl(
+    env,
+    `/storage/kv/namespaces/${namespaceId}/values/${encodeURIComponent(key)}`,
+  );
   const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}` },
+    headers: { Authorization: `Bearer ${apiToken}` },
   });
   if (res.status === 404) {
     return { value: null, metadata: null };
@@ -180,9 +212,10 @@ export async function kvPut(
   }
   const qs = params.toString();
   const path = `/storage/kv/namespaces/${namespaceId}/values/${encodeURIComponent(key)}${qs ? `?${qs}` : ""}`;
+  const { apiToken } = requireCfCredentials(env);
 
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
+    Authorization: `Bearer ${apiToken}`,
   };
   let body: BodyInit = value;
   if (options?.metadata !== undefined) {
@@ -194,7 +227,7 @@ export async function kvPut(
     headers["Content-Type"] = "text/plain";
   }
 
-  const url = `${CF_API}/accounts/${env.CLOUDFLARE_ACCOUNT_ID}${path}`;
+  const url = accountUrl(env, path);
   const res = await fetch(url, { method: "PUT", headers, body });
   const json = (await res.json()) as {
     success: boolean;
@@ -240,9 +273,13 @@ export async function kvList(
   if (opts.limit) params.set("limit", String(opts.limit));
   if (opts.cursor) params.set("cursor", opts.cursor);
 
-  const url = `${CF_API}/accounts/${env.CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${namespaceId}/keys?${params}`;
+  const { apiToken } = requireCfCredentials(env);
+  const url = accountUrl(
+    env,
+    `/storage/kv/namespaces/${namespaceId}/keys?${params}`,
+  );
   const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}` },
+    headers: { Authorization: `Bearer ${apiToken}` },
   });
   const json = (await res.json()) as {
     success: boolean;
