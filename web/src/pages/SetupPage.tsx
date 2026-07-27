@@ -264,6 +264,33 @@ Save. Then click Recheck (no redeploy needed).`;
 
           <section className="space-y-3 rounded-md border border-border bg-background p-5">
             <div className="flex items-center gap-2">
+              <StepBadge done={status.data_kv_bound}>+</StepBadge>
+              <h2 className="text-sm font-medium">{t("setup.dataKvTitle")}</h2>
+            </div>
+            {status.data_kv_bound ? (
+              <StepDoneMessage>{t("setup.dataKvOk")}</StepDoneMessage>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  {t("setup.dataKvMissing")}
+                </p>
+                <p className="text-xs text-muted-foreground">{t("setup.dataKvHint")}</p>
+                <pre className="overflow-x-auto rounded-md border border-border bg-muted p-3 font-mono text-xs whitespace-pre-wrap">
+                  {`Cloudflare Dashboard
+→ Workers & Pages → cfbridge
+→ Settings → Bindings → Add → KV namespace
+
+Variable name: DATA_KV
+Namespace: cfbridge-data
+
+Save. Then click Recheck (no redeploy needed).`}
+                </pre>
+              </div>
+            )}
+          </section>
+
+          <section className="space-y-3 rounded-md border border-border bg-background p-5">
+            <div className="flex items-center gap-2">
               <StepBadge done={step2Done}>3</StepBadge>
               <h2 className="text-sm font-medium">{t("setup.step2Title")}</h2>
             </div>

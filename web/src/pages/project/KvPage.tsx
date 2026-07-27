@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Navigate } from "react-router-dom";
 import { api, ApiClientError } from "@/api";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { PageHeader } from "@/components/layouts/page-header";
@@ -13,7 +14,8 @@ import { cn } from "@/lib/utils";
 
 export default function KvPage() {
   const t = useT();
-  const { project } = useProject();
+  const { project, resources } = useProject();
+  const hasKv = resources.some((r) => r.kind === "kv");
   const [prefix, setPrefix] = useState("");
   const [keys, setKeys] = useState<Array<{ name: string }>>([]);
   const [selected, setSelected] = useState("");
@@ -22,6 +24,10 @@ export default function KvPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  if (!hasKv) {
+    return <Navigate to={`/projects/${project.id}/overview`} replace />;
+  }
 
   async function listKeys() {
     setBusy(true);

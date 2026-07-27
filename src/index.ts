@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { AppEnv } from "./lib/http";
-import { requireReady } from "./lib/require-ready";
+import { requireReady, isReadyCached, noteReadyFromStatus } from "./lib/require-ready";
 import { buildSetupStatus } from "./lib/setup";
 import adminAuth from "./routes/admin/auth";
 import projects from "./routes/admin/projects";
@@ -42,12 +42,23 @@ app.use(
 );
 
 app.get("/health", async (c) => {
+  if (isReadyCached()) {
+    return c.json({
+      ok: true,
+      ready: true,
+      meta_reachable: true,
+      needs_migration: false,
+      data_kv_bound: Boolean(c.env.DATA_KV),
+    });
+  }
   const status = await buildSetupStatus(c.env);
+  noteReadyFromStatus(status.ready);
   return c.json({
     ok: true,
     ready: status.ready,
     meta_reachable: status.meta_reachable,
     needs_migration: status.needs_migration,
+    data_kv_bound: status.data_kv_bound,
   });
 });
 

@@ -52,7 +52,7 @@ browser.post("/:projectId/browser/redis", async (c) => {
     c.env,
     project.id,
     argv.map((x) => String(x)),
-    { role: "service_role", anonReadonly: false },
+    { role: "service_role", anonReadonly: false, projectRef: project.ref },
   );
   if ("error" in res) {
     if (res.error.includes("no KV resource")) {

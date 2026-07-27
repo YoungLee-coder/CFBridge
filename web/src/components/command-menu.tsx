@@ -22,6 +22,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { useT } from "@/i18n";
+import { useProjectTools } from "@/components/layouts/project-tools-context";
 
 export function CommandMenu({
   open,
@@ -35,6 +36,7 @@ export function CommandMenu({
   const { logout } = useAuth();
   const projectMatch = useMatch("/projects/:id/*");
   const projectId = projectMatch?.params.id;
+  const { tools } = useProjectTools();
   const [projects, setProjects] = useState<Project[]>([]);
 
   const load = useCallback(async () => {
@@ -96,14 +98,18 @@ export function CommandMenu({
                 <KeyRoundIcon />
                 <span>{t("project.tabKeys")}</span>
               </CommandItem>
-              <CommandItem onSelect={() => go(`/projects/${projectId}/kv`)}>
-                <ServerIcon />
-                <span>{t("project.tabRedis")}</span>
-              </CommandItem>
-              <CommandItem onSelect={() => go(`/projects/${projectId}/d1`)}>
-                <DatabaseIcon />
-                <span>{t("project.tabD1")}</span>
-              </CommandItem>
+              {tools?.hasKv ? (
+                <CommandItem onSelect={() => go(`/projects/${projectId}/kv`)}>
+                  <ServerIcon />
+                  <span>{t("project.tabRedis")}</span>
+                </CommandItem>
+              ) : null}
+              {tools?.hasD1 ? (
+                <CommandItem onSelect={() => go(`/projects/${projectId}/d1`)}>
+                  <DatabaseIcon />
+                  <span>{t("project.tabD1")}</span>
+                </CommandItem>
+              ) : null}
             </CommandGroup>
           </>
         ) : null}

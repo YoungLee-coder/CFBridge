@@ -13,6 +13,7 @@ import {
 } from "../../lib/http";
 import * as cf from "../../lib/cf-account";
 import { CfApiError } from "../../lib/cf-account";
+import { SHARED_KV_CF_ID, purgeBindingPrefix } from "../../lib/kv-backend";
 import { resolveProject } from "./projects";
 
 const resources = new Hono<AppEnv>();
@@ -58,8 +59,10 @@ resources.post("/:projectId/resources/attach", async (c) => {
 
   const id = generateId();
   const name = body.name?.trim() || `${project.ref}-${body.kind}`;
+  // Attach always uses Account REST (dedicated CF resource).
   await getMeta(c.env).prepare(
-    `INSERT INTO project_resources (id, project_id, kind, cf_id, name) VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO project_resources (id, project_id, kind, cf_id, name, access_mode)
+     VALUES (?, ?, ?, ?, ?, 'rest')`,
   )
     .bind(id, project.id, body.kind, body.cf_id.trim(), name)
     .run();
@@ -98,26 +101,36 @@ resources.post("/:projectId/resources/create", async (c) => {
     return conflict(c, `Project already has a ${body.kind} resource`);
   }
 
-  let cfId: string;
   const name = body.name.trim();
-  try {
-    if (body.kind === "kv") {
-      const ns = await cf.createKvNamespace(c.env, name);
-      cfId = ns.id;
-    } else {
+  let cfId: string;
+  let accessMode: "binding" | "rest";
+
+  if (body.kind === "kv") {
+    if (!c.env.DATA_KV) {
+      return badRequest(
+        c,
+        "DATA_KV is not bound. Add a KV namespace binding named DATA_KV on this Worker, then retry. (Attach an existing namespace if you need the REST path.)",
+      );
+    }
+    cfId = SHARED_KV_CF_ID;
+    accessMode = "binding";
+  } else {
+    try {
       const db = await cf.createD1Database(c.env, name);
       cfId = db.uuid;
+      accessMode = "rest";
+    } catch (e) {
+      const msg = e instanceof CfApiError ? e.message : "Failed to create resource";
+      return upstream(c, msg);
     }
-  } catch (e) {
-    const msg = e instanceof CfApiError ? e.message : "Failed to create resource";
-    return upstream(c, msg);
   }
 
   const id = generateId();
   await getMeta(c.env).prepare(
-    `INSERT INTO project_resources (id, project_id, kind, cf_id, name) VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO project_resources (id, project_id, kind, cf_id, name, access_mode)
+     VALUES (?, ?, ?, ?, ?, ?)`,
   )
-    .bind(id, project.id, body.kind, cfId, name)
+    .bind(id, project.id, body.kind, cfId, name, accessMode)
     .run();
 
   const row = await getMeta(c.env).prepare(
@@ -141,7 +154,15 @@ resources.delete("/:projectId/resources/:resourceId", async (c) => {
   if (!row) return notFound(c, "Resource not found");
 
   const deleteCf = c.req.query("delete_cf") === "true";
-  if (deleteCf) {
+  if (row.kind === "kv" && row.access_mode === "binding") {
+    // Always clear this project's prefix when detaching binding KV.
+    try {
+      await purgeBindingPrefix(c.env, project.ref);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to purge DATA_KV prefix";
+      return upstream(c, msg);
+    }
+  } else if (deleteCf && row.access_mode !== "binding") {
     try {
       if (row.kind === "kv") await cf.deleteKvNamespace(c.env, row.cf_id);
       if (row.kind === "d1") await cf.deleteD1Database(c.env, row.cf_id);

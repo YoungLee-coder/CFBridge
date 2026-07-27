@@ -270,6 +270,11 @@ export default function OverviewPage() {
                 </Button>
               </div>
             </div>
+            {mode === "create" && kind === "kv" ? (
+              <p className="text-[11px] leading-tight text-muted-foreground">
+                {t("project.kvCreateHint")}
+              </p>
+            ) : null}
             {mode === "attach" && cfLoadError ? (
               <p className="text-[11px] leading-tight text-muted-foreground">
                 {cfLoadError}
@@ -290,6 +295,7 @@ export default function OverviewPage() {
                   <TableRow className="hover:bg-transparent">
                     <TableHead>{t("project.colKind")}</TableHead>
                     <TableHead>{t("project.colName")}</TableHead>
+                    <TableHead>{t("project.colAccess")}</TableHead>
                     <TableHead>{t("project.colCfId")}</TableHead>
                     <TableHead />
                   </TableRow>
@@ -301,6 +307,13 @@ export default function OverviewPage() {
                         <Badge variant="secondary">{r.kind}</Badge>
                       </TableCell>
                       <TableCell>{r.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {r.access_mode === "binding"
+                            ? t("project.accessBinding")
+                            : t("project.accessRest")}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <code className="text-xs">{r.cf_id}</code>
                       </TableCell>
@@ -353,15 +366,24 @@ export default function OverviewPage() {
         title={t("project.detachTitle")}
         body={
           detachTarget
-            ? t("project.detachBody", {
-                kind: detachTarget.kind,
-                name: detachTarget.name,
-              })
+            ? detachTarget.access_mode === "binding"
+              ? `${t("project.detachBody", {
+                  kind: detachTarget.kind,
+                  name: detachTarget.name,
+                })} ${t("project.alsoDeleteCfBinding")}`
+              : t("project.detachBody", {
+                  kind: detachTarget.kind,
+                  name: detachTarget.name,
+                })
             : ""
         }
         confirmLabel={t("common.remove")}
         busy={busy}
-        checkboxLabel={t("project.alsoDeleteCf")}
+        checkboxLabel={
+          detachTarget?.access_mode === "binding"
+            ? undefined
+            : t("project.alsoDeleteCf")
+        }
         checkboxChecked={deleteCf}
         onCheckboxChange={setDeleteCf}
         onCancel={() => {

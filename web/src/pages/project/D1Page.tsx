@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
+import { Navigate } from "react-router-dom";
 import { api, ApiClientError } from "@/api";
 import { PageHeader } from "@/components/layouts/page-header";
 import { useProject } from "@/components/layouts/project-layout";
@@ -17,7 +18,8 @@ import { useT } from "@/i18n";
 
 export default function D1Page() {
   const t = useT();
-  const { project } = useProject();
+  const { project, resources } = useProject();
+  const hasD1 = resources.some((r) => r.kind === "d1");
   const [sql, setSql] = useState(
     "SELECT name FROM sqlite_master WHERE type='table';",
   );
@@ -33,6 +35,10 @@ export default function D1Page() {
     const first = r.result?.[0]?.results;
     return first ?? null;
   }, [result]);
+
+  if (!hasD1) {
+    return <Navigate to={`/projects/${project.id}/overview`} replace />;
+  }
 
   async function run(e: FormEvent) {
     e.preventDefault();

@@ -7,7 +7,19 @@ import type { ResourceRow } from "../../lib/db";
 import type { Env } from "../../env";
 import { getMeta } from "../../lib/meta";
 import type { AppEnv } from "../../lib/http";
-import * as cf from "../../lib/cf-account";
+import {
+  type KvBackend,
+  kvBackendDelete,
+  kvBackendErrorMessage,
+  kvBackendGet,
+  kvBackendList,
+  kvBackendMdel,
+  kvBackendMexists,
+  kvBackendMget,
+  kvBackendMset,
+  kvBackendPut,
+  resolveKvBackend,
+} from "../../lib/kv-backend";
 import { CfApiError } from "../../lib/cf-account";
 
 const WRITE_COMMANDS = new Set([
@@ -26,8 +38,7 @@ class RedisCmdError extends Error {
 }
 
 type ExecCtx = {
-  env: Env;
-  namespaceId: string;
+  backend: KvBackend;
   role: ApiKeyRole | undefined;
   anonReadonly: boolean | undefined;
 };
@@ -92,6 +103,28 @@ async function getKvResource(
     .first<ResourceRow>();
 }
 
+async function resolveBackendForProject(
+  env: Env,
+  projectId: string,
+  projectRef: string,
+): Promise<KvBackend> {
+  const resource = await getKvResource(getMeta(env), projectId);
+  if (!resource) {
+    throw new RedisCmdError("ERR no KV resource on this project");
+  }
+  try {
+    return resolveKvBackend(env, {
+      accessMode: resource.access_mode === "binding" ? "binding" : "rest",
+      cfId: resource.cf_id,
+      projectRef,
+    });
+  } catch (e) {
+    throw new RedisCmdError(
+      `ERR ${e instanceof Error ? e.message : "KV backend unavailable"}`,
+    );
+  }
+}
+
 function parseTtlSeconds(raw: string, label = "EX"): number {
   const n = Number(raw);
   if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1) {
@@ -148,7 +181,7 @@ async function executeCommand(ctx: ExecCtx, argv: string[]): Promise<unknown> {
           "ERR wrong number of arguments for 'get' command",
         );
       }
-      const { value } = await cf.kvGet(ctx.env, ctx.namespaceId, args[0]!);
+      const { value } = await kvBackendGet(ctx.backend, args[0]!);
       return value;
     }
 
@@ -181,7 +214,7 @@ async function executeCommand(ctx: ExecCtx, argv: string[]): Promise<unknown> {
           throw new RedisCmdError("ERR syntax error");
         }
       }
-      await cf.kvPut(ctx.env, ctx.namespaceId, key, value, { expiration_ttl });
+      await kvBackendPut(ctx.backend, key, value, { expiration_ttl });
       return "OK";
     }
 
@@ -192,7 +225,7 @@ async function executeCommand(ctx: ExecCtx, argv: string[]): Promise<unknown> {
         );
       }
       const ttl = parseTtlSeconds(args[1]!, "SETEX");
-      await cf.kvPut(ctx.env, ctx.namespaceId, args[0]!, args[2]!, {
+      await kvBackendPut(ctx.backend, args[0]!, args[2]!, {
         expiration_ttl: ttl,
       });
       return "OK";
@@ -204,11 +237,7 @@ async function executeCommand(ctx: ExecCtx, argv: string[]): Promise<unknown> {
           "ERR wrong number of arguments for 'del' command",
         );
       }
-      let deleted = 0;
-      for (const key of args) {
-        if (await cf.kvDelete(ctx.env, ctx.namespaceId, key)) deleted += 1;
-      }
-      return deleted;
+      return kvBackendMdel(ctx.backend, args);
     }
 
     case "exists": {
@@ -217,12 +246,7 @@ async function executeCommand(ctx: ExecCtx, argv: string[]): Promise<unknown> {
           "ERR wrong number of arguments for 'exists' command",
         );
       }
-      let count = 0;
-      for (const key of args) {
-        const { value } = await cf.kvGet(ctx.env, ctx.namespaceId, key);
-        if (value !== null) count += 1;
-      }
-      return count;
+      return kvBackendMexists(ctx.backend, args);
     }
 
     case "mget": {
@@ -231,12 +255,7 @@ async function executeCommand(ctx: ExecCtx, argv: string[]): Promise<unknown> {
           "ERR wrong number of arguments for 'mget' command",
         );
       }
-      const out: Array<string | null> = [];
-      for (const key of args) {
-        const { value } = await cf.kvGet(ctx.env, ctx.namespaceId, key);
-        out.push(value);
-      }
-      return out;
+      return kvBackendMget(ctx.backend, args);
     }
 
     case "mset": {
@@ -245,9 +264,11 @@ async function executeCommand(ctx: ExecCtx, argv: string[]): Promise<unknown> {
           "ERR wrong number of arguments for 'mset' command",
         );
       }
+      const pairs: Array<[string, string]> = [];
       for (let i = 0; i < args.length; i += 2) {
-        await cf.kvPut(ctx.env, ctx.namespaceId, args[i]!, args[i + 1]!);
+        pairs.push([args[i]!, args[i + 1]!]);
       }
+      await kvBackendMset(ctx.backend, pairs);
       return "OK";
     }
 
@@ -258,13 +279,9 @@ async function executeCommand(ctx: ExecCtx, argv: string[]): Promise<unknown> {
         );
       }
       const ttl = parseTtlSeconds(args[1]!, "EXPIRE");
-      const { value, metadata } = await cf.kvGet(
-        ctx.env,
-        ctx.namespaceId,
-        args[0]!,
-      );
+      const { value, metadata } = await kvBackendGet(ctx.backend, args[0]!);
       if (value === null) return 0;
-      await cf.kvPut(ctx.env, ctx.namespaceId, args[0]!, value, {
+      await kvBackendPut(ctx.backend, args[0]!, value, {
         expiration_ttl: ttl,
         metadata: metadata ?? undefined,
       });
@@ -281,8 +298,8 @@ async function executeCommand(ctx: ExecCtx, argv: string[]): Promise<unknown> {
       const names: string[] = [];
       let cursor: string | undefined;
       do {
-        const page = await cf.kvList(ctx.env, ctx.namespaceId, {
-          prefix: prefix || undefined,
+        const page = await kvBackendList(ctx.backend, {
+          userPrefix: prefix || undefined,
           limit: 1000,
           cursor,
         });
@@ -320,8 +337,8 @@ async function executeCommand(ctx: ExecCtx, argv: string[]): Promise<unknown> {
         }
       }
       const prefix = match !== undefined ? keysPatternToPrefix(match) : "";
-      const page = await cf.kvList(ctx.env, ctx.namespaceId, {
-        prefix: prefix || undefined,
+      const page = await kvBackendList(ctx.backend, {
+        userPrefix: prefix || undefined,
         limit: count,
         cursor: cursorIn === "0" ? undefined : cursorIn,
       });
@@ -339,17 +356,30 @@ export async function runRedisArgv(
   env: Env,
   projectId: string,
   argv: string[],
-  opts: { role?: ApiKeyRole; anonReadonly?: boolean } = {},
+  opts: {
+    role?: ApiKeyRole;
+    anonReadonly?: boolean;
+    projectRef?: string;
+    backend?: KvBackend;
+  } = {},
 ): Promise<{ result: unknown } | { error: string }> {
   try {
-    const resource = await getKvResource(getMeta(env), projectId);
-    if (!resource) {
-      throw new RedisCmdError("ERR no KV resource on this project");
+    let backend = opts.backend;
+    if (!backend) {
+      let projectRef = opts.projectRef;
+      if (!projectRef) {
+        const row = await getMeta(env)
+          .prepare("SELECT ref FROM projects WHERE id = ?")
+          .bind(projectId)
+          .first<{ ref: string }>();
+        if (!row) throw new RedisCmdError("ERR project not found");
+        projectRef = row.ref;
+      }
+      backend = await resolveBackendForProject(env, projectId, projectRef);
     }
     const result = await executeCommand(
       {
-        env,
-        namespaceId: resource.cf_id,
+        backend,
         role: opts.role,
         anonReadonly: opts.anonReadonly,
       },
@@ -360,7 +390,7 @@ export async function runRedisArgv(
     if (e instanceof RedisCmdError) return { error: e.message };
     if (e instanceof CfApiError) return { error: `ERR ${e.message}` };
     return {
-      error: `ERR ${e instanceof Error ? e.message : "internal error"}`,
+      error: `ERR ${kvBackendErrorMessage(e)}`,
     };
   }
 }
@@ -369,14 +399,17 @@ async function runOne(
   c: {
     env: Env;
     get: (
-      key: "projectId" | "apiKeyRole" | "anonReadonly",
+      key: "projectId" | "projectRef" | "apiKeyRole" | "anonReadonly",
     ) => string | ApiKeyRole | boolean | undefined;
   },
   argv: string[],
+  backend?: KvBackend,
 ): Promise<{ result: unknown } | { error: string }> {
   return runRedisArgv(c.env, c.get("projectId") as string, argv, {
     role: c.get("apiKeyRole") as ApiKeyRole | undefined,
     anonReadonly: c.get("anonReadonly") as boolean | undefined,
+    projectRef: c.get("projectRef") as string | undefined,
+    backend,
   });
 }
 
@@ -409,13 +442,28 @@ redis.post("/pipeline", async (c) => {
     );
   }
 
+  let backend: KvBackend;
+  try {
+    backend = await resolveBackendForProject(
+      c.env,
+      c.get("projectId") as string,
+      c.get("projectRef") as string,
+    );
+  } catch (e) {
+    const msg =
+      e instanceof RedisCmdError
+        ? e.message
+        : `ERR ${kvBackendErrorMessage(e)}`;
+    return c.json({ error: msg }, 400);
+  }
+
   const out: Array<{ result: unknown } | { error: string }> = [];
   for (const row of statements) {
     if (!Array.isArray(row) || row.length === 0) {
       out.push({ error: "ERR each pipeline entry must be a non-empty array" });
       continue;
     }
-    out.push(await runOne(c, row.map((x) => String(x))));
+    out.push(await runOne(c, row.map((x) => String(x)), backend));
   }
   return c.json(out);
 });

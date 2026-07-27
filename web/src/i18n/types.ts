@@ -89,6 +89,10 @@ export type Messages = {
     alreadyLatest: string;
     migrateFailed: string;
     pickLanguageFirst: string;
+    dataKvTitle: string;
+    dataKvOk: string;
+    dataKvMissing: string;
+    dataKvHint: string;
   };
   login: {
     subtitle: string;
@@ -150,6 +154,10 @@ export type Messages = {
     colKind: string;
     colName: string;
     colCfId: string;
+    colAccess: string;
+    accessBinding: string;
+    accessRest: string;
+    kvCreateHint: string;
     kind: string;
     mode: string;
     modeCreate: string;
@@ -169,6 +177,7 @@ export type Messages = {
     deleteProjectTitle: string;
     deleteProjectBody: string;
     alsoDeleteCf: string;
+    alsoDeleteCfBinding: string;
     resourceFailed: string;
     keysNewTitle: string;
     keysNewHint: string;

@@ -1,4 +1,10 @@
-import type { Project, ProjectResource, ApiKeyPublic, ApiKeyRole } from "@cfbridge/shared";
+import type {
+  Project,
+  ProjectResource,
+  ApiKeyPublic,
+  ApiKeyRole,
+  ResourceAccessMode,
+} from "@cfbridge/shared";
 
 export interface ProjectRow {
   id: string;
@@ -14,6 +20,7 @@ export interface ResourceRow {
   kind: "kv" | "d1" | "r2";
   cf_id: string;
   name: string;
+  access_mode: ResourceAccessMode;
   created_at: string;
 }
 
@@ -44,6 +51,7 @@ export function toResource(row: ResourceRow): ProjectResource {
     kind: row.kind,
     cf_id: row.cf_id,
     name: row.name,
+    access_mode: row.access_mode === "binding" ? "binding" : "rest",
     created_at: row.created_at,
   };
 }

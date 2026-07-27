@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS project_resources (
   kind TEXT NOT NULL CHECK (kind IN ('kv', 'd1', 'r2')),
   cf_id TEXT NOT NULL,
   name TEXT NOT NULL,
+  access_mode TEXT NOT NULL DEFAULT 'rest' CHECK (access_mode IN ('binding', 'rest')),
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE (project_id, kind)
 );

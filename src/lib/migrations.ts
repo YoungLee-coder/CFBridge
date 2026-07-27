@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS project_resources (
   kind TEXT NOT NULL CHECK (kind IN ('kv', 'd1', 'r2')),
   cf_id TEXT NOT NULL,
   name TEXT NOT NULL,
+  access_mode TEXT NOT NULL DEFAULT 'rest' CHECK (access_mode IN ('binding', 'rest')),
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE (project_id, kind)
 );
@@ -58,6 +59,7 @@ export const LATEST_VERSION = MIGRATIONS.reduce(
 
 export const WORKER_NAME = "cfbridge";
 export const META_DB_NAME = "cfbridge-meta";
+export const DATA_KV_NAME = "cfbridge-data";
 
 /** Instructions for binding META in the Cloudflare Dashboard (no redeploy). */
 export function bindSnippet(databaseId: string): string {
@@ -68,6 +70,18 @@ export function bindSnippet(databaseId: string): string {
 Variable name: META
 Database: ${META_DB_NAME}
 database_id: ${databaseId}
+
+Save. Then return here and click Recheck (no redeploy needed).`;
+}
+
+/** Instructions for binding shared DATA_KV (Redis fast path). */
+export function dataKvBindSnippet(): string {
+  return `Cloudflare Dashboard
+→ Workers & Pages → ${WORKER_NAME}
+→ Settings → Bindings → Add → KV namespace
+
+Variable name: DATA_KV
+Namespace: ${DATA_KV_NAME} (create if needed)
 
 Save. Then return here and click Recheck (no redeploy needed).`;
 }

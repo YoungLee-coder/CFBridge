@@ -5,7 +5,7 @@
 - `src/` — Hono Cloudflare Worker：管理 API、数据面（Redis REST → KV、D1 libSQL/Hrana + CF 信封）、健康检查；入口 `src/index.ts`。
 - `src/routes/admin/` — 管理路由：认证、项目（创建时自动签发可公开/服务端密钥）、资源挂载/创建、Cloudflare 账号资源列表、API Key、Setup、设置。
 - `src/routes/v1/` — 数据面路由：`redis.ts`（Upstash 兼容子集）、`d1.ts`（libSQL pipeline + CF query/raw）。
-- `src/lib/` — 核心逻辑：认证、加密、Meta D1、Cloudflare Account API、Hrana、迁移、Setup 状态。
+- `src/lib/` — 核心逻辑：认证、加密、Meta D1、Cloudflare Account API、共享 DATA_KV Binding、Hrana、迁移、Setup 状态。
 - `migrations/` — Meta D1 schema 迁移（`wrangler d1 migrations apply`）。
 - `wrangler.toml` — 生产 Worker 配置（根目录）；不写 Meta D1 的 `database_id`（面板绑 `META`）；`[assets] directory = "dist"`。
 - `wrangler.dev.toml` — 本地 `wrangler dev` / `db:migrate:local` 配置；含占位 `META` 绑定。

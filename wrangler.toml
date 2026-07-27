@@ -7,10 +7,14 @@ compatibility_flags = ["nodejs_compat"]
 #   Workers & Pages → cfbridge → Settings → Bindings → Add → D1 database
 #   Variable name: META
 #   Database: create or select "cfbridge-meta"
-# Then open the Worker URL → Setup → Initialize schema.
 #
-# Keep [[d1_databases]] out of this file so Dashboard bindings are not overwritten
-# by wrangler/Git deploy. Local `wrangler dev` / `db:migrate:local` use wrangler.dev.toml.
+# Shared data KV (Redis fast path) — also bind in Dashboard (no id in this file):
+#   Bindings → Add → KV namespace
+#   Variable name: DATA_KV
+#   Namespace: create or select "cfbridge-data"
+#
+# Keep [[d1_databases]] / [[kv_namespaces]] out of this file so Dashboard bindings
+# are not overwritten by wrangler/Git deploy. Local `wrangler dev` uses wrangler.dev.toml.
 
 [assets]
 directory = "dist"

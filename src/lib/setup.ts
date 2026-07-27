@@ -70,13 +70,19 @@ export async function getAppliedMigrations(db: D1Database): Promise<string[]> {
   return (results ?? []).map((r) => r.id);
 }
 
-export async function getSchemaVersion(db: D1Database): Promise<number> {
-  const applied = await getAppliedMigrations(db);
+export async function getSchemaVersionFromApplied(
+  applied: string[],
+): Promise<number> {
   let version = 0;
   for (const m of MIGRATIONS) {
     if (applied.includes(m.id)) version = Math.max(version, m.version);
   }
   return version;
+}
+
+export async function getSchemaVersion(db: D1Database): Promise<number> {
+  const applied = await getAppliedMigrations(db);
+  return getSchemaVersionFromApplied(applied);
 }
 
 function splitStatements(sql: string): string[] {
@@ -126,8 +132,9 @@ export async function buildSetupStatus(
   let pending_migrations: string[] = [];
 
   if (probe.state === "ok") {
-    const applied = new Set(await getAppliedMigrations(probe.db));
-    schema_version = await getSchemaVersion(probe.db);
+    const appliedList = await getAppliedMigrations(probe.db);
+    const applied = new Set(appliedList);
+    schema_version = await getSchemaVersionFromApplied(appliedList);
     pending_migrations = MIGRATIONS.filter((m) => !applied.has(m.id)).map(
       (m) => m.id,
     );
@@ -143,6 +150,7 @@ export async function buildSetupStatus(
     ready,
     meta_bound,
     meta_reachable,
+    data_kv_bound: Boolean(env.DATA_KV),
     schema_version,
     latest_version: LATEST_VERSION,
     pending_migrations,

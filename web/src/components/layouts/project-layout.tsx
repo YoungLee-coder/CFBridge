@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useT } from "@/i18n";
+import { useProjectTools } from "@/components/layouts/project-tools-context";
 
 const PROJECT_SECTIONS = ["overview", "keys", "kv", "d1"] as const;
 export type ProjectSection = (typeof PROJECT_SECTIONS)[number];
@@ -52,6 +53,7 @@ export function ProjectLayout() {
   const t = useT();
   const tRef = useRef(t);
   tRef.current = t;
+  const { setFromResources } = useProjectTools();
   const [project, setProject] = useState<Project | null>(null);
   const [resources, setResources] = useState<ProjectResource[]>([]);
   const [keys, setKeys] = useState<ApiKeyPublic[]>([]);
@@ -69,6 +71,7 @@ export function ProjectLayout() {
       setKeys(keyRes.keys);
     } catch (err) {
       setProject(null);
+      setResources([]);
       setError(
         err instanceof ApiClientError
           ? err.message
@@ -82,6 +85,15 @@ export function ProjectLayout() {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useEffect(() => {
+    if (loading || !project) {
+      setFromResources(null);
+      return;
+    }
+    setFromResources(resources);
+    return () => setFromResources(null);
+  }, [loading, project, resources, setFromResources]);
 
   const value = useMemo<ProjectContextValue | null>(() => {
     if (!project) return null;

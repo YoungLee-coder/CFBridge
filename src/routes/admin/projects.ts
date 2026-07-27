@@ -16,6 +16,7 @@ import {
   type AppEnv,
 } from "../../lib/http";
 import * as cf from "../../lib/cf-account";
+import { purgeBindingPrefix } from "../../lib/kv-backend";
 
 const projects = new Hono<AppEnv>();
 
@@ -161,16 +162,30 @@ projects.delete("/:id", async (c) => {
   if (!row) return notFound(c, "Project not found");
 
   const deleteCf = c.req.query("delete_cf") === "true";
+  const { results } = await getMeta(c.env).prepare(
+    "SELECT * FROM project_resources WHERE project_id = ?",
+  )
+    .bind(row.id)
+    .all<ResourceRow>();
+
+  // Always purge shared-KV prefix so reused refs cannot see old data.
+  for (const r of results ?? []) {
+    if (r.kind === "kv" && r.access_mode === "binding") {
+      try {
+        await purgeBindingPrefix(c.env, row.ref);
+      } catch {
+        // best-effort
+      }
+    }
+  }
+
   if (deleteCf) {
-    const { results } = await getMeta(c.env).prepare(
-      "SELECT * FROM project_resources WHERE project_id = ?",
-    )
-      .bind(row.id)
-      .all<ResourceRow>();
     for (const r of results ?? []) {
       try {
-        if (r.kind === "kv") await cf.deleteKvNamespace(c.env, r.cf_id);
-        if (r.kind === "d1") await cf.deleteD1Database(c.env, r.cf_id);
+        if (r.access_mode !== "binding") {
+          if (r.kind === "kv") await cf.deleteKvNamespace(c.env, r.cf_id);
+          if (r.kind === "d1") await cf.deleteD1Database(c.env, r.cf_id);
+        }
       } catch {
         // best-effort cleanup
       }

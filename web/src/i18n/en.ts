@@ -94,6 +94,12 @@ export const en: Messages = {
     alreadyLatest: "Database is already up to date",
     migrateFailed: "Initialization failed",
     pickLanguageFirst: "Choose a language before continuing",
+    dataKvTitle: "DATA_KV (Redis fast path)",
+    dataKvOk:
+      "DATA_KV is bound. New KV resources use the shared binding (isolated by project key prefix).",
+    dataKvMissing:
+      "DATA_KV is not bound. Add a KV namespace binding named DATA_KV. You can still attach an existing namespace (slower), but you cannot create a fast-path KV.",
+    dataKvHint: "Bind in the Cloudflare Dashboard (no redeploy after save):",
   },
   login: {
     subtitle: "Admin console for your Cloudflare edge storage gateway.",
@@ -148,7 +154,8 @@ export const en: Messages = {
     tabRedis: "Redis Browser",
     tabD1: "D1 Console",
     resources: "Resources",
-    resourcesHint: "Create or attach Cloudflare KV namespaces and D1 databases.",
+    resourcesHint:
+      "New KV uses shared DATA_KV (fast). Attach an existing namespace for the slower REST path. D1 still uses the Cloudflare API.",
     resourcesEmpty: "No resources yet. Create or attach KV / D1.",
     keysPageHint:
       "Publishable keys for clients; secret keys for backends. Plaintext is shown only when created.",
@@ -159,6 +166,11 @@ export const en: Messages = {
     colKind: "Kind",
     colName: "Name",
     colCfId: "CF ID",
+    colAccess: "Access",
+    accessBinding: "Binding (fast)",
+    accessRest: "REST (compat)",
+    kvCreateHint:
+      "Writes to shared DATA_KV with a project-ref key prefix. Requires the DATA_KV binding.",
     kind: "Kind",
     mode: "Mode",
     modeCreate: "Create new",
@@ -178,6 +190,8 @@ export const en: Messages = {
     deleteProjectTitle: "Delete project",
     deleteProjectBody: "Delete project {ref}? This cannot be undone.",
     alsoDeleteCf: "Also delete the Cloudflare resource",
+    alsoDeleteCfBinding:
+      "Keys under this project's DATA_KV prefix will be cleared (the shared namespace is kept)",
     resourceFailed: "Resource action failed",
     keysNewTitle: "New key (shown once)",
     keysNewHint: "Copy it now. Plaintext is shown only once.",

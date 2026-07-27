@@ -1,5 +1,5 @@
 # Local wrangler config — use with: wrangler -c wrangler.dev.toml …
-# Production deploy uses wrangler.toml (no Meta D1 database_id).
+# Production deploy uses wrangler.toml (no Meta D1 / DATA_KV ids).
 
 name = "cfbridge"
 main = "src/index.ts"
@@ -11,6 +11,11 @@ binding = "META"
 database_name = "cfbridge-meta"
 database_id = "00000000-0000-0000-0000-000000000001"
 migrations_dir = "migrations"
+
+[[kv_namespaces]]
+binding = "DATA_KV"
+id = "00000000-0000-0000-0000-000000000002"
+preview_id = "00000000-0000-0000-0000-000000000002"
 
 [assets]
 directory = "dist"

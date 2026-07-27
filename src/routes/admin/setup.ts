@@ -13,6 +13,7 @@ import {
   createMetaDatabase,
   probeMeta,
 } from "../../lib/setup";
+import { invalidateReadyCache } from "../../lib/require-ready";
 import { getLocale, setLocale } from "../../lib/settings";
 import {
   badRequest,
@@ -86,6 +87,7 @@ setup.post("/migrate", requireAdmin, async (c) => {
     if (locale) {
       await setLocale(probe.db, locale);
     }
+    invalidateReadyCache();
     const status = await buildSetupStatus(c.env);
     const stored = await getLocale(probe.db);
     const body: MigrateResponse = {

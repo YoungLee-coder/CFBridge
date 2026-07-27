@@ -36,6 +36,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/auth";
+import {
+  ProjectToolsProvider,
+  useProjectTools,
+} from "@/components/layouts/project-tools-context";
 import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +61,7 @@ function DashboardChrome({ children }: { children?: ReactNode }) {
   const [cmdOpen, setCmdOpen] = useState(false);
 
   const inProject = Boolean(projectId);
+  const { tools } = useProjectTools();
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -83,34 +88,39 @@ function DashboardChrome({ children }: { children?: ReactNode }) {
     },
   ];
 
-  const projectItems: RailItem[] = projectId
-    ? [
-        {
-          to: `/projects/${projectId}/overview`,
-          label: t("project.tabOverview"),
-          icon: HomeIcon,
-          match: (p) => p.includes("/overview"),
-        },
-        {
-          to: `/projects/${projectId}/keys`,
-          label: t("project.tabKeys"),
-          icon: KeyRoundIcon,
-          match: (p) => p.includes("/keys"),
-        },
-        {
-          to: `/projects/${projectId}/kv`,
-          label: t("project.tabRedis"),
-          icon: ServerIcon,
-          match: (p) => p.includes("/kv"),
-        },
-        {
-          to: `/projects/${projectId}/d1`,
-          label: t("project.tabD1"),
-          icon: DatabaseIcon,
-          match: (p) => p.includes("/d1"),
-        },
-      ]
-    : [];
+  const projectItems: RailItem[] = [];
+  if (projectId) {
+    projectItems.push(
+      {
+        to: `/projects/${projectId}/overview`,
+        label: t("project.tabOverview"),
+        icon: HomeIcon,
+        match: (p) => p.includes("/overview"),
+      },
+      {
+        to: `/projects/${projectId}/keys`,
+        label: t("project.tabKeys"),
+        icon: KeyRoundIcon,
+        match: (p) => p.includes("/keys"),
+      },
+    );
+    if (tools?.hasKv) {
+      projectItems.push({
+        to: `/projects/${projectId}/kv`,
+        label: t("project.tabRedis"),
+        icon: ServerIcon,
+        match: (p) => p.includes("/kv"),
+      });
+    }
+    if (tools?.hasD1) {
+      projectItems.push({
+        to: `/projects/${projectId}/d1`,
+        label: t("project.tabD1"),
+        icon: DatabaseIcon,
+        match: (p) => p.includes("/d1"),
+      });
+    }
+  }
 
   return (
     <>
@@ -296,7 +306,9 @@ function DashboardChrome({ children }: { children?: ReactNode }) {
 export function DashboardLayout({ children }: { children?: ReactNode }) {
   return (
     <SidebarProvider defaultOpen={false}>
-      <DashboardChrome>{children}</DashboardChrome>
+      <ProjectToolsProvider>
+        <DashboardChrome>{children}</DashboardChrome>
+      </ProjectToolsProvider>
     </SidebarProvider>
   );
 }

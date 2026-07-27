@@ -1,5 +1,7 @@
 export type ApiKeyRole = "anon" | "service_role";
 export type ResourceKind = "kv" | "d1" | "r2";
+/** KV: binding = shared DATA_KV; rest = Account API to a dedicated namespace. D1 is always rest. */
+export type ResourceAccessMode = "binding" | "rest";
 export type Locale = "en" | "zh-CN";
 
 export const LOCALES: Locale[] = ["en", "zh-CN"];
@@ -38,8 +40,10 @@ export interface ProjectResource {
   id: string;
   project_id: string;
   kind: ResourceKind;
+  /** For KV binding mode this is the sentinel "DATA_KV"; otherwise a CF resource id. */
   cf_id: string;
   name: string;
+  access_mode: ResourceAccessMode;
   created_at: string;
 }
 
@@ -108,6 +112,8 @@ export interface SetupStatus {
   ready: boolean;
   meta_bound: boolean;
   meta_reachable: boolean;
+  /** Shared project-data KV binding (required to create fast-path KV resources). */
+  data_kv_bound: boolean;
   schema_version: number;
   latest_version: number;
   pending_migrations: string[];
