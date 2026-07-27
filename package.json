@@ -27,7 +27,7 @@
     "react-router-dom": "^7.4.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250317.0",
+    "@cloudflare/workers-types": "^5.20260727.1",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
