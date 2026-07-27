@@ -11,8 +11,8 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "paths": {
-      "@cfbridge/shared": ["../../packages/shared/src/index.ts"]
+      "@cfbridge/shared": ["./shared-types/index.ts"]
     }
   },
-  "include": ["src", "migrations"]
+  "include": ["src", "shared-types", "migrations"]
 }

@@ -11,6 +11,6 @@ Project knowledge is distributed across `.ai/`. Read these files before non-triv
 - `.ai/security.md` — safety rules, destructive-op guardrails
 
 Claude-specific notes:
-- 优先用 Edit 改已有文件；类型/接口改动从 `packages/shared` 开始。
+- 优先用 Edit 改已有文件；类型/接口改动从 `shared-types/` 开始。
 - **Persistent memory:** 发现稳定约定缺失于 `.ai/` 时，提议保存并确认后再写。用 `/cfbridge-remember` 或按 `.ai/project.md` Persistent memory 章节路由。
 - Put personal overrides in `CLAUDE.local.md` (gitignored).

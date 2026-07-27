@@ -2,19 +2,37 @@
   "name": "cfbridge",
   "private": true,
   "version": "0.1.0",
+  "type": "module",
   "description": "Single-admin multi-project gateway for Cloudflare KV and D1",
   "scripts": {
-    "dev": "pnpm --filter @cfbridge/api dev",
-    "dev:api": "pnpm --filter @cfbridge/api exec wrangler dev",
-    "dev:web": "pnpm --filter @cfbridge/web dev",
-    "build": "pnpm --filter @cfbridge/web build && pnpm --filter @cfbridge/api typecheck",
-    "deploy": "pnpm --filter @cfbridge/api deploy",
-    "db:migrate:local": "pnpm --filter @cfbridge/api db:migrate:local",
-    "db:migrate:remote": "pnpm --filter @cfbridge/api db:migrate:remote",
-    "typecheck": "pnpm -r typecheck"
+    "dev": "pnpm run /dev:api & pnpm run /dev:web",
+    "/dev:api": "wrangler dev",
+    "/dev:web": "vite --config web/vite.config.ts",
+    "dev:api": "wrangler dev",
+    "dev:web": "vite --config web/vite.config.ts",
+    "build": "vite build --config web/vite.config.ts",
+    "deploy": "pnpm build && wrangler deploy",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p web/tsconfig.json",
+    "db:migrate:local": "wrangler d1 migrations apply META --local",
+    "db:migrate:remote": "wrangler d1 migrations apply META --remote"
   },
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@9.15.0"
+  "packageManager": "pnpm@9.15.0",
+  "dependencies": {
+    "hono": "^4.7.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.4.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250317.0",
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.2",
+    "wrangler": "^4.2.0"
+  }
 }

@@ -9,6 +9,6 @@
 
 ## Per-change verification
 
-- `apps/api/` 或 `packages/shared/`：先 `pnpm typecheck`，再按需 curl 数据面/管理面。
-- `apps/web/`：`pnpm typecheck`，必要时 `pnpm dev:web` 检查页面。
-- `apps/api/migrations/`：`pnpm db:migrate:local`，Setup 页确认 schema 版本。
+- `src/` 或 `shared-types/`：先 `pnpm typecheck`，再按需 curl 数据面/管理面。
+- `web/`：`pnpm typecheck`，必要时 `pnpm dev:web` 检查页面。
+- `migrations/`：`pnpm db:migrate:local`，Setup 页确认 schema 版本。

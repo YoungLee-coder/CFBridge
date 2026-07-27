@@ -30,10 +30,10 @@ export default function LoginPage() {
     <div className="login-page">
       <form className="login-card stack" onSubmit={(e) => void onSubmit(e)}>
         <div>
-          <h1>
-            CF<span style={{ color: "var(--accent)" }}>Bridge</span>
+          <h1 className="brand-mark">
+            CF<span>Bridge</span>
           </h1>
-          <p>{t("login.subtitle")}</p>
+          <p className="subtitle">{t("login.subtitle")}</p>
         </div>
         <label className="label">
           {t("login.adminPassword")}
@@ -46,7 +46,7 @@ export default function LoginPage() {
             required
           />
         </label>
-        {error && <div className="error">{error}</div>}
+        {error && <div className="alert alert-error">{error}</div>}
         <button className="btn btn-primary" type="submit" disabled={loading}>
           {loading ? t("login.signingIn") : t("login.signIn")}
         </button>

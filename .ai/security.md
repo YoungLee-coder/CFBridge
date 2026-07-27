@@ -2,7 +2,7 @@
 
 ## Critical Safety Rules
 
-- 永远不要提交 `apps/api/.dev.vars`、`.env` 或含真实 token 的文件。
+- 永远不要提交 `.dev.vars`、`.env` 或含真实 token 的文件。
 - `CLOUDFLARE_API_TOKEN` 具备 KV/D1 写权限——仅在 Worker 环境使用，不要打到前端或日志。
 - API Key 明文只在创建时返回一次；数据库存哈希（`crypto.ts`），不要记录或缓存明文 Key。
 - 管理会话用 `SESSION_SECRET` 签名；`ADMIN_PASSWORD` 比较走 `timingSafeEqual`——不要换成普通字符串比较。

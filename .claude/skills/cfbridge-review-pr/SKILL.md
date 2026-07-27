@@ -17,6 +17,6 @@ Review a pull request against project conventions and security rules.
 6. **Verification check**: confirm the commands from `.ai/workflow.md` Verification section were run for the change types involved.
 
 CFBridge-specific:
-- 检查 `packages/shared` 是否与 API/Web 同步更新。
+- 检查 `shared-types/` 是否与 API/Web 同步更新。
 - 数据面改动确认 curl 验收路径仍可用（见 `README.md`）。
 - 迁移文件改动确认本地 migrate + Setup 流程。

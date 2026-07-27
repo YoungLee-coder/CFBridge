@@ -16,7 +16,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@cfbridge/shared": ["../../packages/shared/src/index.ts"]
+      "@cfbridge/shared": ["../shared-types/index.ts"]
     }
   },
   "include": ["src"]

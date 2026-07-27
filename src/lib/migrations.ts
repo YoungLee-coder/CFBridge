@@ -4,7 +4,7 @@ export interface Migration {
   sql: string;
 }
 
-/** Keep in sync with apps/api/migrations/*.sql */
+/** Keep in sync with migrations/*.sql */
 export const MIGRATIONS: Migration[] = [
   {
     id: "0001_init",

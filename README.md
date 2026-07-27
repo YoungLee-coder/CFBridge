@@ -19,10 +19,10 @@
 
 ```bash
 pnpm install
-cp apps/api/.dev.vars.example apps/api/.dev.vars
+cp .dev.vars.example .dev.vars
 ```
 
-编辑 `apps/api/.dev.vars`：
+编辑根目录 `.dev.vars`：
 
 | 变量 | 用途 |
 |---|---|
@@ -33,7 +33,7 @@ cp apps/api/.dev.vars.example apps/api/.dev.vars
 
 ### 2. 本地 Meta D1（仅本地开发）
 
-编辑 `apps/api/wrangler.toml`，取消注释底部的 `[[d1_databases]]` 本地占位块，然后：
+编辑根目录 `wrangler.toml`，取消注释底部的 `[[d1_databases]]` 本地占位块，然后：
 
 ```bash
 pnpm db:migrate:local
@@ -44,15 +44,16 @@ pnpm db:migrate:local
 ### 3. 启动（单个 Worker：API + Dashboard）
 
 ```bash
-pnpm dev    # 先 build web，再 wrangler dev → http://127.0.0.1:8787
+pnpm dev    # wrangler :8787 + vite :5173（并行）
 ```
 
-打开 http://127.0.0.1:8787，用 `ADMIN_PASSWORD` 登录。
+打开 http://127.0.0.1:8787（或 Vite :5173），用 `ADMIN_PASSWORD` 登录。
 
 可选拆开开发（Vite HMR + API 分开跑）：
 
 ```bash
-pnpm dev:api   # 仅 Worker（需已有 apps/web/dist）
+pnpm build     # 先产出根目录 dist/（Worker assets 需要）
+pnpm dev:api   # 仅 Worker（需已有 dist/）
 pnpm dev:web   # Vite 在 :5173，把 /admin 和 /v1 代理到 :8787
 ```
 
@@ -284,7 +285,14 @@ libSQL pipeline 内的语句错误落在 `results[].type === "error"`（HTTP 仍
 任选其一：
 
 **A. Cloudflare 面板（Git / Workers Builds）**  
-连接本仓库，构建命令与输出按你的 CI 配置；确保部署用的 `wrangler.toml` 里没有生产用的 `[[d1_databases]]`。
+连接本仓库。推荐配置：
+
+| 设置 | 值 |
+|------|-----|
+| Build command | `pnpm run build` |
+| Deploy command | `npx wrangler deploy` |
+
+确保部署用的 `wrangler.toml` 里没有生产用的 `[[d1_databases]]`。
 
 **B. 本地 wrangler 上传代码（仍可在面板绑库）**
 
@@ -332,9 +340,11 @@ Workers & Pages → **cfbridge** → Settings → Variables and Secrets，添加
 ## 仓库结构
 
 ```
-apps/api         Hono Worker（管理端 + 数据面，并托管 Dashboard 静态资源）
-apps/web         Dashboard 源码（构建到 apps/web/dist，作为 Worker assets 上传）
-packages/shared  共享类型 / 错误辅助
+src/             Hono Worker（管理端 + 数据面，并托管 Dashboard 静态资源）
+web/             Dashboard 源码（构建到根目录 dist/，作为 Worker assets 上传）
+shared-types/    共享类型 / 错误辅助（@cfbridge/shared）
+migrations/      Meta D1 schema 迁移
+wrangler.toml    Worker 配置（根目录）
 ```
 
 ## v1 不做

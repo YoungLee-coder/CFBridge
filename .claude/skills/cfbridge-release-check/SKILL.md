@@ -9,9 +9,9 @@ Verify that CFBridge is ready for release.
 
 ## Steps
 
-1. **Run typecheck**: `pnpm typecheck` — 全 workspace 必须通过。
-2. **Run build**: `pnpm build` — web 构建 + api typecheck。
-3. **Check version**: 确认根 `package.json` 与各 workspace 包版本一致（当前为 `0.1.0`）。
+1. **Run typecheck**: `pnpm typecheck` — Worker + web 必须通过。
+2. **Run build**: `pnpm build` — vite 输出到根目录 `dist/`。
+3. **Check version**: 确认根 `package.json` 版本（当前为 `0.1.0`）。
 4. **Manual smoke test**: 按 `README.md` curl 路径验证管理端与数据面（本地 `pnpm dev` 或 staging Worker）。
 5. **Deploy checklist**:
    - `wrangler.toml` 无生产用 `database_id`（Meta D1 在面板绑 `META`）。

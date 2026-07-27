@@ -71,9 +71,9 @@ function Shell() {
             {t("app.projects")}
           </NavLink>
         </nav>
-        <div style={{ marginTop: "auto" }} className="stack">
+        <div className="sidebar-footer">
           <LanguageSwitcher />
-          <button type="button" className="btn" onClick={() => void logout()}>
+          <button type="button" className="btn btn-sm" onClick={() => void logout()}>
             {t("app.logout")}
           </button>
         </div>
@@ -118,9 +118,11 @@ export default function App() {
   if (setupError) {
     return (
       <div className="login-page">
-        <div className="login-card">
-          <h1>CFBridge</h1>
-          <p className="error">{setupError}</p>
+        <div className="login-card stack">
+          <h1 className="brand-mark">
+            CF<span>Bridge</span>
+          </h1>
+          <div className="alert alert-error">{setupError}</div>
           <button type="button" className="btn" onClick={() => void loadSetup()}>
             {t("common.retry")}
           </button>

@@ -15,7 +15,7 @@ Implement a new feature following the conventions defined in `.ai/`:
 6. **Memory**: if you discovered a stable convention or gotcha missing from `.ai/`, propose saving it (confirm before writing — see `/cfbridge-remember`).
 
 CFBridge-specific:
-- 类型/接口改动从 `packages/shared` 开始，再改 API 与 Web。
+- 类型/接口改动从 `shared-types/` 开始，再改 API（`src/`）与 Web（`web/`）。
 - 新管理 API 用 `jsonError()` 系列 helper；数据面 Redis 保持 Upstash 兼容信封。
-- Web UI 新文案同时更新 `apps/web/src/i18n/en.ts` 和 `zh-CN.ts`。
+- Web UI 新文案同时更新 `web/src/i18n/en.ts` 和 `zh-CN.ts`。
 - 涉及 Meta schema 时新增 migration 并本地 `pnpm db:migrate:local` 验证。

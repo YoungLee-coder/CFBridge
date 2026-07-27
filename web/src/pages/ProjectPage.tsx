@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import type { ApiKeyPublic, Project, ProjectResource } from "@cfbridge/shared";
 import { api, ApiClientError } from "../api";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { useT } from "../i18n";
 import type { MessagePath } from "../i18n/types";
 
@@ -39,11 +40,24 @@ export default function ProjectPage() {
     void load();
   }, [load]);
 
-  if (loading) return <p className="muted">{t("common.loading")}</p>;
+  if (loading) {
+    return (
+      <div className="skeleton-list" aria-busy="true">
+        <div className="skeleton-row">
+          <div className="skeleton-line w-40" />
+          <div className="skeleton-line w-60" />
+        </div>
+        <div className="skeleton-row">
+          <div className="skeleton-line w-60" />
+        </div>
+      </div>
+    );
+  }
+
   if (!project) {
     return (
-      <div>
-        <p className="error">{error || t("project.notFound")}</p>
+      <div className="stack">
+        <div className="alert alert-error">{error || t("project.notFound")}</div>
         <Link to="/">{t("common.back")}</Link>
       </div>
     );
@@ -60,15 +74,17 @@ export default function ProjectPage() {
     <div>
       <div className="page-header">
         <div>
-          <p className="muted" style={{ margin: 0 }}>
-            <Link to="/">{t("app.projects")}</Link> / {project.name}
+          <p className="breadcrumb">
+            <Link to="/">{t("app.projects")}</Link>
+            {" / "}
+            {project.name}
           </p>
-          <h1 style={{ marginTop: "0.35rem" }}>{project.name}</h1>
+          <h1 className="page-title">{project.name}</h1>
           <p>{t("project.refBase", { ref: project.ref })}</p>
         </div>
       </div>
 
-      {error && <p className="error">{error}</p>}
+      {error && <div className="alert alert-error mb">{error}</div>}
 
       <div className="tabs">
         {tabs.map(([idTab, labelKey]) => (
@@ -117,12 +133,17 @@ function OverviewTab({
   setError: (e: string | null) => void;
 }) {
   const t = useT();
+  const navigate = useNavigate();
   const [kind, setKind] = useState<"kv" | "d1">("kv");
   const [mode, setMode] = useState<"create" | "attach">("create");
   const [name, setName] = useState("");
   const [cfId, setCfId] = useState("");
   const [busy, setBusy] = useState(false);
   const [anonReadonly, setAnonReadonly] = useState(project.anon_readonly);
+  const [detachTarget, setDetachTarget] = useState<ProjectResource | null>(null);
+  const [deleteCf, setDeleteCf] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteProjectCf, setDeleteProjectCf] = useState(false);
 
   async function saveSettings(e: FormEvent) {
     e.preventDefault();
@@ -166,18 +187,14 @@ function OverviewTab({
     }
   }
 
-  async function removeResource(r: ProjectResource) {
-    if (
-      !confirm(
-        t("project.confirmDetach", { kind: r.kind, name: r.name }),
-      )
-    )
-      return;
-    const deleteCf = confirm(t("project.confirmDeleteCfResource"));
+  async function confirmDetach() {
+    if (!detachTarget) return;
     setBusy(true);
     setError(null);
     try {
-      await api.deleteResource(project.id, r.id, deleteCf);
+      await api.deleteResource(project.id, detachTarget.id, deleteCf);
+      setDetachTarget(null);
+      setDeleteCf(false);
       await onChanged();
     } catch (err) {
       setError(
@@ -188,14 +205,12 @@ function OverviewTab({
     }
   }
 
-  async function deleteProject() {
-    if (!confirm(t("project.confirmDeleteProject", { ref: project.ref })))
-      return;
-    const deleteCf = confirm(t("project.confirmDeleteCfOnProject"));
+  async function confirmDeleteProject() {
     setBusy(true);
+    setError(null);
     try {
-      await api.deleteProject(project.id, deleteCf);
-      window.location.href = "/";
+      await api.deleteProject(project.id, deleteProjectCf);
+      navigate("/");
     } catch (err) {
       setError(
         err instanceof ApiClientError ? err.message : t("common.failedDelete"),
@@ -209,10 +224,7 @@ function OverviewTab({
       <div className="card">
         <h2>{t("project.settings")}</h2>
         <form className="row" onSubmit={(e) => void saveSettings(e)}>
-          <label
-            className="label"
-            style={{ flexDirection: "row", alignItems: "center", gap: "0.5rem" }}
-          >
+          <label className="label label-inline">
             <input
               type="checkbox"
               checked={anonReadonly}
@@ -244,18 +256,21 @@ function OverviewTab({
               {resources.map((r) => (
                 <tr key={r.id}>
                   <td>
-                    <span className="badge badge-ok">{r.kind}</span>
+                    <span className="badge badge-info">{r.kind}</span>
                   </td>
                   <td>{r.name}</td>
                   <td>
                     <code>{r.cf_id}</code>
                   </td>
-                  <td>
+                  <td className="actions">
                     <button
                       type="button"
-                      className="btn btn-danger"
+                      className="btn btn-ghost btn-sm"
                       disabled={busy}
-                      onClick={() => void removeResource(r)}
+                      onClick={() => {
+                        setDeleteCf(false);
+                        setDetachTarget(r);
+                      }}
                     >
                       {t("common.remove")}
                     </button>
@@ -266,11 +281,7 @@ function OverviewTab({
           </table>
         )}
 
-        <form
-          className="stack"
-          style={{ marginTop: "1rem" }}
-          onSubmit={(e) => void addResource(e)}
-        >
+        <form className="stack mt-1" onSubmit={(e) => void addResource(e)}>
           <div className="row">
             <label className="label">
               {t("project.kind")}
@@ -318,25 +329,76 @@ function OverviewTab({
               </label>
             )}
           </div>
-          <button className="btn btn-primary" type="submit" disabled={busy}>
-            {mode === "create"
-              ? t("project.createResource")
-              : t("project.attachResource")}
-          </button>
+          <div className="form-actions">
+            <button className="btn btn-primary" type="submit" disabled={busy}>
+              {mode === "create"
+                ? t("project.createResource")
+                : t("project.attachResource")}
+            </button>
+          </div>
         </form>
       </div>
 
-      <div className="card">
+      <div className="card card-danger">
         <h2>{t("project.dangerZone")}</h2>
+        <p className="muted card-hint">
+          {t("project.dangerZoneHint")}
+        </p>
         <button
           type="button"
           className="btn btn-danger"
           disabled={busy}
-          onClick={() => void deleteProject()}
+          onClick={() => {
+            setDeleteProjectCf(false);
+            setDeleteOpen(true);
+          }}
         >
           {t("project.deleteProject")}
         </button>
       </div>
+
+      <ConfirmDialog
+        open={detachTarget !== null}
+        title={t("project.detachTitle")}
+        body={
+          detachTarget
+            ? t("project.detachBody", {
+                kind: detachTarget.kind,
+                name: detachTarget.name,
+              })
+            : ""
+        }
+        confirmLabel={t("common.remove")}
+        busy={busy}
+        checkboxLabel={t("project.alsoDeleteCf")}
+        checkboxChecked={deleteCf}
+        onCheckboxChange={setDeleteCf}
+        onCancel={() => {
+          if (!busy) {
+            setDetachTarget(null);
+            setDeleteCf(false);
+          }
+        }}
+        onConfirm={() => void confirmDetach()}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title={t("project.deleteProjectTitle")}
+        body={t("project.deleteProjectBody", { ref: project.ref })}
+        confirmLabel={t("project.deleteProject")}
+        busy={busy}
+        checkboxLabel={t("project.alsoDeleteCf")}
+        checkboxChecked={deleteProjectCf}
+        onCheckboxChange={setDeleteProjectCf}
+        onCancel={() => {
+          if (!busy) {
+            setDeleteOpen(false);
+            setDeleteProjectCf(false);
+          }
+        }}
+        onConfirm={() => void confirmDeleteProject()}
+      />
     </div>
   );
 }
@@ -356,13 +418,16 @@ function KeysTab({
   const [name, setName] = useState("default");
   const [role, setRole] = useState<"anon" | "service_role">("service_role");
   const [freshKey, setFreshKey] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [revokeId, setRevokeId] = useState<string | null>(null);
 
   async function createKey(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     setFreshKey(null);
+    setCopied(false);
     try {
       const res = await api.createKey(project.id, {
         name: name.trim(),
@@ -380,12 +445,23 @@ function KeysTab({
     }
   }
 
-  async function revoke(keyId: string) {
-    if (!confirm(t("project.confirmRevoke"))) return;
+  async function copyKey() {
+    if (!freshKey) return;
+    try {
+      await navigator.clipboard.writeText(freshKey);
+      setCopied(true);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function confirmRevoke() {
+    if (!revokeId) return;
     setBusy(true);
     setError(null);
     try {
-      await api.revokeKey(project.id, keyId);
+      await api.revokeKey(project.id, revokeId);
+      setRevokeId(null);
       await onChanged();
     } catch (err) {
       setError(
@@ -400,11 +476,27 @@ function KeysTab({
     <div className="stack">
       {freshKey && (
         <div className="card">
-          <h2>{t("project.keysNewTitle")}</h2>
-          <div className="secret-box">{freshKey}</div>
-          <p className="muted" style={{ marginTop: "0.5rem" }}>
-            {t("project.keysNewHint")}
-          </p>
+          <div className="secret-banner">
+            <div className="row secret-banner-head">
+              <h2>{t("project.keysNewTitle")}</h2>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setFreshKey(null)}
+              >
+                {t("common.dismiss")}
+              </button>
+            </div>
+            <div className="secret-box">{freshKey}</div>
+            <div className="row">
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => void copyKey()}>
+                {copied ? t("common.copied") : t("common.copy")}
+              </button>
+              <p className="muted hint-inline">
+                {t("project.keysNewHint")}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -433,14 +525,11 @@ function KeysTab({
               <option value="anon">anon</option>
             </select>
           </label>
-          <button
-            className="btn btn-primary"
-            type="submit"
-            disabled={busy}
-            style={{ alignSelf: "end" }}
-          >
-            {t("project.mintKey")}
-          </button>
+          <div className="form-actions">
+            <button className="btn btn-primary" type="submit" disabled={busy}>
+              {t("project.mintKey")}
+            </button>
+          </div>
         </form>
       </div>
 
@@ -476,13 +565,13 @@ function KeysTab({
                       {k.revoked_at ? t("project.revoked") : t("project.active")}
                     </span>
                   </td>
-                  <td>
+                  <td className="actions">
                     {!k.revoked_at && (
                       <button
                         type="button"
-                        className="btn btn-danger"
+                        className="btn btn-ghost btn-sm"
                         disabled={busy}
-                        onClick={() => void revoke(k.id)}
+                        onClick={() => setRevokeId(k.id)}
                       >
                         {t("project.revoke")}
                       </button>
@@ -494,6 +583,18 @@ function KeysTab({
           </table>
         )}
       </div>
+
+      <ConfirmDialog
+        open={revokeId !== null}
+        title={t("project.revokeTitle")}
+        body={t("project.revokeBody")}
+        confirmLabel={t("project.revoke")}
+        busy={busy}
+        onCancel={() => {
+          if (!busy) setRevokeId(null);
+        }}
+        onConfirm={() => void confirmRevoke()}
+      />
     </div>
   );
 }
@@ -518,6 +619,7 @@ function KvTab({ project }: { project: Project }) {
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   async function listKeys() {
     setBusy(true);
@@ -572,9 +674,8 @@ function KvTab({ project }: { project: Project }) {
     }
   }
 
-  async function deleteKey() {
+  async function confirmDeleteKey() {
     if (!selected.trim()) return;
-    if (!confirm(t("project.confirmDeleteKey", { name: selected }))) return;
     setBusy(true);
     setError(null);
     try {
@@ -582,6 +683,7 @@ function KvTab({ project }: { project: Project }) {
       setSelected("");
       setValue("");
       setMsg(t("project.deleted"));
+      setDeleteOpen(false);
       await listKeys();
     } catch (err) {
       setError(
@@ -596,7 +698,7 @@ function KvTab({ project }: { project: Project }) {
     <div className="stack">
       <div className="card">
         <h2>{t("project.browserKey")}</h2>
-        <p className="muted">{t("project.browserKeyHint")}</p>
+        <p className="muted tight-b">{t("project.browserKeyHint")}</p>
         <input
           className="input mono"
           value={apiKey}
@@ -616,25 +718,26 @@ function KvTab({ project }: { project: Project }) {
               onChange={(e) => setPrefix(e.target.value)}
             />
           </label>
-          <button
-            type="button"
-            className="btn"
-            disabled={busy || !apiKey}
-            style={{ alignSelf: "end" }}
-            onClick={() => void listKeys()}
-          >
-            {t("project.list")}
-          </button>
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn"
+              disabled={busy || !apiKey}
+              onClick={() => void listKeys()}
+            >
+              {t("project.list")}
+            </button>
+          </div>
         </div>
         {keys.length > 0 && (
-          <table className="table" style={{ marginTop: "0.75rem" }}>
+          <table className="table mt-1">
             <tbody>
               {keys.map((k) => (
                 <tr key={k.name}>
                   <td>
                     <button
                       type="button"
-                      className="btn"
+                      className="btn btn-ghost btn-sm"
                       onClick={() => void loadKey(k.name)}
                     >
                       <code>{k.name}</code>
@@ -677,16 +780,28 @@ function KvTab({ project }: { project: Project }) {
             <button
               type="button"
               className="btn btn-danger"
-              disabled={busy || !apiKey}
-              onClick={() => void deleteKey()}
+              disabled={busy || !apiKey || !selected.trim()}
+              onClick={() => setDeleteOpen(true)}
             >
               {t("common.delete")}
             </button>
           </div>
         </form>
-        {error && <p className="error">{error}</p>}
-        {msg && <p className="success">{msg}</p>}
+        {error && <div className="alert alert-error mt-1">{error}</div>}
+        {msg && <div className="alert alert-success mt-1">{msg}</div>}
       </div>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title={t("project.deleteKeyTitle")}
+        body={t("project.deleteKeyBody", { name: selected })}
+        confirmLabel={t("common.delete")}
+        busy={busy}
+        onCancel={() => {
+          if (!busy) setDeleteOpen(false);
+        }}
+        onConfirm={() => void confirmDeleteKey()}
+      />
     </div>
   );
 }
@@ -746,20 +861,21 @@ function D1Tab({ project }: { project: Project }) {
         <h2>{t("project.sql")}</h2>
         <form className="stack" onSubmit={(e) => void run(e)}>
           <textarea
-            className="textarea"
+            className="textarea textarea-lg"
             value={sql}
             onChange={(e) => setSql(e.target.value)}
-            style={{ minHeight: 160 }}
           />
-          <button
-            className="btn btn-primary"
-            type="submit"
-            disabled={busy || !apiKey}
-          >
-            {busy ? t("project.running") : t("project.runQuery")}
-          </button>
+          <div className="form-actions">
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={busy || !apiKey}
+            >
+              {busy ? t("project.running") : t("project.runQuery")}
+            </button>
+          </div>
         </form>
-        {error && <p className="error">{error}</p>}
+        {error && <div className="alert alert-error mt-1">{error}</div>}
       </div>
 
       <div className="card">
@@ -768,7 +884,7 @@ function D1Tab({ project }: { project: Project }) {
           rows.length === 0 ? (
             <p className="muted">{t("project.zeroRows")}</p>
           ) : (
-            <div style={{ overflowX: "auto" }}>
+            <div className="scroll-x">
               <table className="table">
                 <thead>
                   <tr>
@@ -796,7 +912,7 @@ function D1Tab({ project }: { project: Project }) {
             </div>
           )
         ) : result ? (
-          <pre className="mono" style={{ whiteSpace: "pre-wrap", margin: 0 }}>
+          <pre className="mono pre-wrap">
             {JSON.stringify(result, null, 2)}
           </pre>
         ) : (

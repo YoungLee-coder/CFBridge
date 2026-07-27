@@ -122,25 +122,22 @@ Save. Then click Recheck (no redeploy needed).`;
 
   return (
     <div className="login-page">
-      <div className="login-card stack" style={{ width: "min(560px, 100%)" }}>
+      <div className="login-card wide stack">
         <div>
-          <h1>
-            CF<span style={{ color: "var(--accent)" }}>Bridge</span>{" "}
-            {t("setup.title")}
+          <h1 className="brand-mark">
+            CF<span>Bridge</span> {t("setup.title")}
           </h1>
-          <p>{t("setup.subtitle")}</p>
+          <p className="subtitle">{t("setup.subtitle")}</p>
         </div>
 
-        <div className="card" style={{ padding: "0.85rem 1rem" }}>
-          <h2 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <span
-              className={`badge ${pickedLocale ? "badge-ok" : "badge-warn"}`}
-            >
-              {pickedLocale ? t("common.done") : t("common.todo")}
+        <div className="card setup-step">
+          <div className="setup-step-header">
+            <span className={`step-dot ${pickedLocale ? "done" : "pending"}`}>
+              1
             </span>
-            {t("setup.chooseLanguage")}
-          </h2>
-          <p className="muted" style={{ margin: "0 0 0.75rem" }}>
+            <h2>{t("setup.chooseLanguage")}</h2>
+          </div>
+          <p className="muted tight-b">
             {t("setup.languageHint")}
           </p>
           <div className="lang-picker">
@@ -176,21 +173,19 @@ Save. Then click Recheck (no redeploy needed).`;
           </label>
         )}
 
-        <div className="card" style={{ padding: "0.85rem 1rem" }}>
-          <h2 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <span className={`badge ${step1Done ? "badge-ok" : "badge-warn"}`}>
-              {step1Done ? t("common.done") : t("common.todo")}
-            </span>
-            {t("setup.step1Title")}
-          </h2>
+        <div className="card setup-step">
+          <div className="setup-step-header">
+            <span className={`step-dot ${step1Done ? "done" : "pending"}`}>2</span>
+            <h2>{t("setup.step1Title")}</h2>
+          </div>
 
           {step1Done ? (
-            <p className="success" style={{ margin: 0 }}>
+            <p className="success tight">
               {t("setup.step1Ok")}
             </p>
           ) : (
             <div className="stack">
-              <p className="muted" style={{ margin: 0 }}>
+              <p className="muted tight">
                 {status.meta_bound
                   ? t("setup.step1BoundBad")
                   : t("setup.step1Unbound")}
@@ -206,19 +201,17 @@ Save. Then click Recheck (no redeploy needed).`;
               </button>
 
               {!status.has_account_credentials && (
-                <p className="error" style={{ margin: 0 }}>
-                  {t("setup.needSecrets")}
-                </p>
+                <div className="alert alert-error">{t("setup.needSecrets")}</div>
               )}
 
-              <p className="muted" style={{ margin: 0 }}>
+              <p className="muted tight">
                 {t("setup.bindHint")}
               </p>
-              <pre className="secret-box" style={{ margin: 0 }}>
+              <pre className="secret-box tight">
                 {snippet}
               </pre>
               {(created?.database_id || status.created_database_id) && (
-                <p className="mono muted" style={{ margin: 0 }}>
+                <p className="mono muted tight">
                   database_id:{" "}
                   {created?.database_id || status.created_database_id}
                 </p>
@@ -227,21 +220,19 @@ Save. Then click Recheck (no redeploy needed).`;
           )}
         </div>
 
-        <div className="card" style={{ padding: "0.85rem 1rem" }}>
-          <h2 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <span className={`badge ${step2Done ? "badge-ok" : "badge-warn"}`}>
-              {step2Done ? t("common.done") : t("common.todo")}
-            </span>
-            {t("setup.step2Title")}
-          </h2>
+        <div className="card setup-step">
+          <div className="setup-step-header">
+            <span className={`step-dot ${step2Done ? "done" : "pending"}`}>3</span>
+            <h2>{t("setup.step2Title")}</h2>
+          </div>
 
           {step2Done ? (
-            <p className="success" style={{ margin: 0 }}>
+            <p className="success tight">
               {t("setup.step2Ok", { version: status.schema_version })}
             </p>
           ) : (
             <div className="stack">
-              <p className="muted" style={{ margin: 0 }}>
+              <p className="muted tight">
                 {t("setup.step2Progress", {
                   current: status.schema_version,
                   latest: status.latest_version,
@@ -267,7 +258,7 @@ Save. Then click Recheck (no redeploy needed).`;
                     : t("setup.upgradeDb")}
               </button>
               {!status.meta_reachable && (
-                <p className="muted" style={{ margin: 0 }}>
+                <p className="muted tight">
                   {t("setup.needStep1")}
                 </p>
               )}
@@ -293,8 +284,8 @@ Save. Then click Recheck (no redeploy needed).`;
           )}
         </div>
 
-        {error && <p className="error">{error}</p>}
-        {msg && <p className="success">{msg}</p>}
+        {error && <div className="alert alert-error">{error}</div>}
+        {msg && <div className="alert alert-success">{msg}</div>}
       </div>
     </div>
   );
