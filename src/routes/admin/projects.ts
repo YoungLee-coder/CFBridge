@@ -1,5 +1,9 @@
 import { Hono } from "hono";
-import type { CreateProjectBody, CreateProjectResponse } from "@cfbridge/shared";
+import {
+  SYSTEM_PROJECT_REF,
+  type CreateProjectBody,
+  type CreateProjectResponse,
+} from "@cfbridge/shared";
 import { requireAdmin } from "../../lib/auth";
 import { mintApiKey } from "../../lib/api-keys";
 import { generateId, generateRef, isValidRef } from "../../lib/crypto";
@@ -17,12 +21,25 @@ import {
 } from "../../lib/http";
 import * as cf from "../../lib/cf-account";
 import { purgeBindingPrefix } from "../../lib/kv-backend";
+import {
+  ensureSystemProject,
+  isMetaCfId,
+  isSystemProject,
+} from "../../lib/system-project";
 
 const projects = new Hono<AppEnv>();
 
 projects.use("*", requireAdmin);
 
 projects.get("/", async (c) => {
+  try {
+    await ensureSystemProject(c.env, { issueKey: false });
+  } catch (e) {
+    console.error(
+      "ensureSystemProject failed on list:",
+      e instanceof Error ? e.message : e,
+    );
+  }
   const { results } = await getMeta(c.env).prepare(
     "SELECT * FROM projects ORDER BY created_at DESC",
   ).all<ProjectRow>();
@@ -45,6 +62,12 @@ projects.post("/", async (c) => {
     return badRequest(
       c,
       "ref must be 2-32 chars: lowercase alphanumeric, _ or -",
+    );
+  }
+  if (ref === SYSTEM_PROJECT_REF) {
+    return conflict(
+      c,
+      `Project ref '${SYSTEM_PROJECT_REF}' is reserved for the system project`,
     );
   }
 
@@ -161,6 +184,13 @@ projects.delete("/:id", async (c) => {
   const row = await resolveProject(getMeta(c.env), id);
   if (!row) return notFound(c, "Project not found");
 
+  if (isSystemProject(row)) {
+    return conflict(
+      c,
+      "The CFBridge system project cannot be deleted",
+    );
+  }
+
   const deleteCf = c.req.query("delete_cf") === "true";
   const { results } = await getMeta(c.env).prepare(
     "SELECT * FROM project_resources WHERE project_id = ?",
@@ -183,6 +213,9 @@ projects.delete("/:id", async (c) => {
     for (const r of results ?? []) {
       try {
         if (r.access_mode !== "binding") {
+          if (r.kind === "d1" && (await isMetaCfId(c.env, r.cf_id))) {
+            continue;
+          }
           if (r.kind === "kv") await cf.deleteKvNamespace(c.env, r.cf_id);
           if (r.kind === "d1") await cf.deleteD1Database(c.env, r.cf_id);
         }

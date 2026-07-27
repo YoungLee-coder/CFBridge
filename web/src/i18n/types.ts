@@ -89,10 +89,19 @@ export type Messages = {
     alreadyLatest: string;
     migrateFailed: string;
     pickLanguageFirst: string;
+    metaTitle: string;
+    metaOk: string;
     dataKvTitle: string;
     dataKvOk: string;
     dataKvMissing: string;
     dataKvHint: string;
+    createDataKv: string;
+    createdDataKvMsg: string;
+    reusedDataKvMsg: string;
+    systemProjectTitle: string;
+    systemProjectHint: string;
+    systemProjectSecret: string;
+    systemProjectContinue: string;
   };
   login: {
     subtitle: string;
@@ -137,6 +146,7 @@ export type Messages = {
     keysRevealContinue: string;
     publishableKey: string;
     secretKey: string;
+    systemBadge: string;
   };
   project: {
     notFound: string;
@@ -171,6 +181,8 @@ export type Messages = {
     attachResource: string;
     dangerZone: string;
     dangerZoneHint: string;
+    systemProtected: string;
+    systemProtectedHint: string;
     deleteProject: string;
     detachTitle: string;
     detachBody: string;

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import {
   isLocale,
+  type CreateDataKvResponse,
   type CreateMetaDbResponse,
   type MigrateBody,
   type MigrateResponse,
@@ -10,11 +11,13 @@ import { CfApiError } from "../../lib/cf-account";
 import {
   applyPendingMigrations,
   buildSetupStatus,
+  createDataKvNamespace,
   createMetaDatabase,
   probeMeta,
 } from "../../lib/setup";
 import { invalidateReadyCache } from "../../lib/require-ready";
 import { getLocale, setLocale } from "../../lib/settings";
+import { ensureSystemProject } from "../../lib/system-project";
 import {
   badRequest,
   jsonError,
@@ -24,22 +27,31 @@ import {
 
 const setup = new Hono<AppEnv>();
 
+function hasAccountCredentials(env: {
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  CLOUDFLARE_API_TOKEN?: string;
+}): boolean {
+  return Boolean(
+    env.CLOUDFLARE_ACCOUNT_ID &&
+      env.CLOUDFLARE_ACCOUNT_ID !== "your_account_id" &&
+      env.CLOUDFLARE_API_TOKEN &&
+      env.CLOUDFLARE_API_TOKEN !== "your_api_token",
+  );
+}
+
 /** Public: dashboard gates on this before login. */
 setup.get("/status", async (c) => {
   const created = c.req.query("created_database_id") || null;
+  const createdNs = c.req.query("created_namespace_id") || null;
   const status = await buildSetupStatus(c.env, {
     createdDatabaseId: created,
+    createdNamespaceId: createdNs,
   });
   return c.json(status);
 });
 
 setup.post("/create-meta-db", requireAdmin, async (c) => {
-  if (
-    !c.env.CLOUDFLARE_ACCOUNT_ID ||
-    c.env.CLOUDFLARE_ACCOUNT_ID === "your_account_id" ||
-    !c.env.CLOUDFLARE_API_TOKEN ||
-    c.env.CLOUDFLARE_API_TOKEN === "your_api_token"
-  ) {
+  if (!hasAccountCredentials(c.env)) {
     return badRequest(
       c,
       "Set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN secrets before creating Meta D1",
@@ -53,6 +65,25 @@ setup.post("/create-meta-db", requireAdmin, async (c) => {
     return upstream(
       c,
       e instanceof CfApiError ? e.message : "Failed to create D1 database",
+    );
+  }
+});
+
+setup.post("/create-data-kv", requireAdmin, async (c) => {
+  if (!hasAccountCredentials(c.env)) {
+    return badRequest(
+      c,
+      "Set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN secrets before creating DATA_KV",
+    );
+  }
+
+  try {
+    const result = await createDataKvNamespace(c.env);
+    return c.json(result satisfies CreateDataKvResponse, 201);
+  } catch (e) {
+    return upstream(
+      c,
+      e instanceof CfApiError ? e.message : "Failed to create KV namespace",
     );
   }
 });
@@ -88,6 +119,24 @@ setup.post("/migrate", requireAdmin, async (c) => {
       await setLocale(probe.db, locale);
     }
     invalidateReadyCache();
+
+    let systemProject: MigrateResponse["system_project"];
+    try {
+      const seeded = await ensureSystemProject(c.env, { issueKey: true });
+      if (seeded.created || seeded.keys) {
+        systemProject = {
+          project: seeded.project,
+          keys: seeded.keys,
+        };
+      }
+    } catch (e) {
+      // Schema is ready; seeding is best-effort (e.g. missing CF credentials for META uuid).
+      console.error(
+        "ensureSystemProject failed after migrate:",
+        e instanceof Error ? e.message : e,
+      );
+    }
+
     const status = await buildSetupStatus(c.env);
     const stored = await getLocale(probe.db);
     const body: MigrateResponse = {
@@ -96,6 +145,7 @@ setup.post("/migrate", requireAdmin, async (c) => {
       latest_version: status.latest_version,
       ready: status.ready,
       locale: stored,
+      system_project: systemProject,
     };
     return c.json(body);
   } catch (e) {

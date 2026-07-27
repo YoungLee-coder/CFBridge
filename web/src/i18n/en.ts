@@ -61,14 +61,14 @@ export const en: Messages = {
   setup: {
     title: "Setup",
     subtitle:
-      "First-time setup: choose a language, bind Meta D1, then initialize or upgrade the database schema.",
+      "First-time setup: choose a language, bind Meta D1 and DATA_KV, then initialize or upgrade the database schema.",
     chooseLanguage: "Choose language",
     languageHint: "This becomes the default language for this CFBridge instance.",
     adminPassword: "Admin password (required to create / initialize)",
     loginRequired: "Enter the admin password and sign in first",
     loginFailed: "Login failed",
-    step1Title: "Bind Meta D1",
-    step1Ok: "META is bound and reachable.",
+    step1Title: "Bind Meta D1 & DATA_KV",
+    step1Ok: "META and DATA_KV are both bound.",
     step1BoundBad:
       "META is bound on this Worker but unreachable. Check the D1 binding in the Dashboard points at a valid database.",
     step1Unbound:
@@ -94,12 +94,24 @@ export const en: Messages = {
     alreadyLatest: "Database is already up to date",
     migrateFailed: "Initialization failed",
     pickLanguageFirst: "Choose a language before continuing",
+    metaTitle: "META (admin database)",
+    metaOk: "META is bound and reachable.",
     dataKvTitle: "DATA_KV (Redis fast path)",
     dataKvOk:
       "DATA_KV is bound. New KV resources use the shared binding (isolated by project key prefix).",
     dataKvMissing:
-      "DATA_KV is not bound. Add a KV namespace binding named DATA_KV. You can still attach an existing namespace (slower), but you cannot create a fast-path KV.",
+      "DATA_KV is not bound. Create a namespace in one click, then add a KV binding named DATA_KV. You can still attach an existing namespace (slower), but you cannot create a fast-path KV.",
     dataKvHint: "Bind in the Cloudflare Dashboard (no redeploy after save):",
+    createDataKv: "Create DATA_KV namespace",
+    createdDataKvMsg:
+      "DATA_KV namespace created. Bind it in the Dashboard using the steps below, then Recheck.",
+    reusedDataKvMsg:
+      "Found existing namespace cfbridge-data. Bind it in the Dashboard using the steps below, then Recheck.",
+    systemProjectTitle: "System project ready — save your secret key",
+    systemProjectHint:
+      "Created the CFBridge system project (META + DATA_KV). Plaintext is shown only once. This key can read and write instance metadata — keep it safe.",
+    systemProjectSecret: "Secret key",
+    systemProjectContinue: "Saved, continue",
   },
   login: {
     subtitle: "Admin console for your Cloudflare edge storage gateway.",
@@ -145,6 +157,7 @@ export const en: Messages = {
     keysRevealContinue: "Open project",
     publishableKey: "Publishable key",
     secretKey: "Secret key",
+    systemBadge: "System",
   },
   project: {
     notFound: "Project not found",
@@ -184,6 +197,9 @@ export const en: Messages = {
     attachResource: "Attach resource",
     dangerZone: "Danger zone",
     dangerZoneHint: "Deleting a project cannot be undone.",
+    systemProtected: "System project",
+    systemProtectedHint:
+      "The CFBridge system project binds META and DATA_KV and cannot be deleted or detached.",
     deleteProject: "Delete project",
     detachTitle: "Detach resource",
     detachBody: "Detach {kind} resource {name} from this project?",

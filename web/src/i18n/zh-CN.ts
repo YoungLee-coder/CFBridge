@@ -61,14 +61,14 @@ export const zhCN: Messages = {
   setup: {
     title: "初始化",
     subtitle:
-      "部署后首次使用：选择语言，绑定 Meta D1，并初始化 / 升级数据库 schema。",
+      "部署后首次使用：选择语言，绑定 Meta D1 与 DATA_KV，并初始化 / 升级数据库 schema。",
     chooseLanguage: "选择语言",
     languageHint: "此语言将成为本 CFBridge 实例的默认语言。",
     adminPassword: "管理员密码（执行创建 / 初始化需要）",
     loginRequired: "请先输入管理员密码并登录",
     loginFailed: "登录失败",
-    step1Title: "绑定 Meta D1",
-    step1Ok: "META 已绑定且可访问。",
+    step1Title: "绑定 Meta D1 与 DATA_KV",
+    step1Ok: "META 与 DATA_KV 均已绑定。",
     step1BoundBad:
       "Worker 已配置 META 绑定，但当前无法访问。请在面板里检查 D1 绑定是否指向有效数据库。",
     step1Unbound:
@@ -93,11 +93,23 @@ export const zhCN: Messages = {
     alreadyLatest: "数据库已是最新，无需升级",
     migrateFailed: "初始化失败",
     pickLanguageFirst: "请先选择语言",
+    metaTitle: "META（管理库）",
+    metaOk: "META 已绑定且可访问。",
     dataKvTitle: "DATA_KV（Redis 快路径）",
     dataKvOk: "DATA_KV 已绑定。新建 KV 资源将走共享 Binding（按项目前缀隔离）。",
     dataKvMissing:
-      "尚未绑定 DATA_KV。在面板 Bindings 添加 KV namespace，Variable name 必须是 DATA_KV。没有它也可以挂载已有 namespace（较慢），但无法「创建」快路径 KV。",
+      "尚未绑定 DATA_KV。可一键创建命名空间，再在面板 Bindings 添加 Variable name = DATA_KV。没有它也可以挂载已有 namespace（较慢），但无法「创建」快路径 KV。",
     dataKvHint: "在 Cloudflare 面板绑定（保存后无需重新部署）：",
+    createDataKv: "创建 DATA_KV 命名空间",
+    createdDataKvMsg:
+      "DATA_KV 命名空间已创建。请按下方步骤在面板绑定到 Worker，再点「重新检测」。",
+    reusedDataKvMsg:
+      "已找到同名命名空间 cfbridge-data。请按下方步骤在面板绑定到 Worker，再点「重新检测」。",
+    systemProjectTitle: "系统项目已就绪 — 请保存服务端密钥",
+    systemProjectHint:
+      "已自动创建 CFBridge 系统项目（META + DATA_KV）。明文密钥只显示这一次；该密钥可读写实例元数据，请妥善保管。",
+    systemProjectSecret: "服务端密钥",
+    systemProjectContinue: "已保存，继续",
   },
   login: {
     subtitle: "Cloudflare 边缘存储网关管理控制台。",
@@ -142,6 +154,7 @@ export const zhCN: Messages = {
     keysRevealContinue: "进入项目",
     publishableKey: "可公开密钥",
     secretKey: "服务端密钥",
+    systemBadge: "系统",
   },
   project: {
     notFound: "未找到项目",
@@ -176,6 +189,8 @@ export const zhCN: Messages = {
     attachResource: "绑定资源",
     dangerZone: "危险操作",
     dangerZoneHint: "删除项目后不可恢复。",
+    systemProtected: "系统项目",
+    systemProtectedHint: "CFBridge 系统项目绑定了 META 与 DATA_KV，不可删除或解除资源。",
     deleteProject: "删除项目",
     detachTitle: "解除资源绑定",
     detachBody: "将 {kind} 资源 {name} 从此项目解除绑定？",

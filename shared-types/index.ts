@@ -122,6 +122,8 @@ export interface SetupStatus {
   has_account_credentials: boolean;
   bind_snippet: string | null;
   created_database_id: string | null;
+  data_kv_bind_snippet: string | null;
+  created_namespace_id: string | null;
 }
 
 export interface CreateMetaDbResponse {
@@ -131,9 +133,21 @@ export interface CreateMetaDbResponse {
   next_steps: string[];
 }
 
+export interface CreateDataKvResponse {
+  namespace_id: string;
+  namespace_title: string;
+  /** True when an existing namespace titled cfbridge-data was reused. */
+  reused: boolean;
+  bind_snippet: string;
+  next_steps: string[];
+}
+
 export interface MigrateBody {
   locale?: Locale;
 }
+
+/** Reserved project ref for the instance system project (META + DATA_KV). */
+export const SYSTEM_PROJECT_REF = "cfbridge";
 
 export interface MigrateResponse {
   applied: string[];
@@ -141,6 +155,11 @@ export interface MigrateResponse {
   latest_version: number;
   ready: boolean;
   locale: Locale | null;
+  /** Present when migrate seeds/issues the system project key for the first time. */
+  system_project?: {
+    project: Project;
+    keys?: { secret: CreateApiKeyResponse };
+  };
 }
 
 export interface InstanceSettings {

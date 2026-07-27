@@ -75,13 +75,14 @@ Save. Then return here and click Recheck (no redeploy needed).`;
 }
 
 /** Instructions for binding shared DATA_KV (Redis fast path). */
-export function dataKvBindSnippet(): string {
+export function dataKvBindSnippet(namespaceId?: string): string {
+  const idLine = namespaceId ? `\nnamespace_id: ${namespaceId}` : "";
   return `Cloudflare Dashboard
 → Workers & Pages → ${WORKER_NAME}
 → Settings → Bindings → Add → KV namespace
 
 Variable name: DATA_KV
-Namespace: ${DATA_KV_NAME} (create if needed)
+Namespace: ${DATA_KV_NAME}${idLine}
 
 Save. Then return here and click Recheck (no redeploy needed).`;
 }

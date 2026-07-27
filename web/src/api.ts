@@ -2,6 +2,7 @@ import type {
   ApiErrorBody,
   ApiKeyPublic,
   CreateApiKeyResponse,
+  CreateDataKvResponse,
   CreateMetaDbResponse,
   CreateProjectResponse,
   InstanceSettings,
@@ -72,14 +73,27 @@ async function request<T>(
 }
 
 export const api = {
-  setupStatus(createdDatabaseId?: string) {
-    const q = createdDatabaseId
-      ? `?created_database_id=${encodeURIComponent(createdDatabaseId)}`
-      : "";
+  setupStatus(opts?: {
+    createdDatabaseId?: string | null;
+    createdNamespaceId?: string | null;
+  }) {
+    const params = new URLSearchParams();
+    if (opts?.createdDatabaseId) {
+      params.set("created_database_id", opts.createdDatabaseId);
+    }
+    if (opts?.createdNamespaceId) {
+      params.set("created_namespace_id", opts.createdNamespaceId);
+    }
+    const q = params.toString() ? `?${params}` : "";
     return request<SetupStatus>(`/admin/setup/status${q}`, {}, false);
   },
   createMetaDb() {
     return request<CreateMetaDbResponse>("/admin/setup/create-meta-db", {
+      method: "POST",
+    });
+  },
+  createDataKv() {
+    return request<CreateDataKvResponse>("/admin/setup/create-data-kv", {
       method: "POST",
     });
   },

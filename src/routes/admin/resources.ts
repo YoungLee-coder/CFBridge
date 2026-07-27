@@ -14,6 +14,10 @@ import {
 import * as cf from "../../lib/cf-account";
 import { CfApiError } from "../../lib/cf-account";
 import { SHARED_KV_CF_ID, purgeBindingPrefix } from "../../lib/kv-backend";
+import {
+  isMetaCfId,
+  isSystemProject,
+} from "../../lib/system-project";
 import { resolveProject } from "./projects";
 
 const resources = new Hono<AppEnv>();
@@ -145,6 +149,13 @@ resources.delete("/:projectId/resources/:resourceId", async (c) => {
   const project = await resolveProject(getMeta(c.env), c.req.param("projectId"));
   if (!project) return notFound(c, "Project not found");
 
+  if (isSystemProject(project)) {
+    return conflict(
+      c,
+      "System project resources (META / DATA_KV) cannot be detached",
+    );
+  }
+
   const resourceId = c.req.param("resourceId");
   const row = await getMeta(c.env).prepare(
     "SELECT * FROM project_resources WHERE id = ? AND project_id = ?",
@@ -154,6 +165,13 @@ resources.delete("/:projectId/resources/:resourceId", async (c) => {
   if (!row) return notFound(c, "Resource not found");
 
   const deleteCf = c.req.query("delete_cf") === "true";
+  if (deleteCf && row.kind === "d1" && (await isMetaCfId(c.env, row.cf_id))) {
+    return conflict(
+      c,
+      "The META D1 database cannot be deleted via CFBridge",
+    );
+  }
+
   if (row.kind === "kv" && row.access_mode === "binding") {
     // Always clear this project's prefix when detaching binding KV.
     try {

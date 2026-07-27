@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import type { CreateApiKeyResponse, Project } from "@cfbridge/shared";
+import {
+  SYSTEM_PROJECT_REF,
+  type CreateApiKeyResponse,
+  type Project,
+} from "@cfbridge/shared";
 import {
   ChevronDownIcon,
   LayoutGridIcon,
@@ -441,9 +445,14 @@ export default function ProjectsPage() {
                       {p.ref}
                     </code>
                   </div>
-                  <Badge variant={p.anon_readonly ? "secondary" : "outline"}>
-                    {p.anon_readonly ? t("projects.readonly") : t("projects.readwrite")}
-                  </Badge>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    {p.ref === SYSTEM_PROJECT_REF && (
+                      <Badge variant="default">{t("projects.systemBadge")}</Badge>
+                    )}
+                    <Badge variant={p.anon_readonly ? "secondary" : "outline"}>
+                      {p.anon_readonly ? t("projects.readonly") : t("projects.readwrite")}
+                    </Badge>
+                  </div>
                 </div>
                 <div className="mt-4 text-xs text-muted-foreground tabular-nums">
                   {p.created_at}
@@ -484,9 +493,14 @@ export default function ProjectsPage() {
                         <code className="text-xs">{p.ref}</code>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={p.anon_readonly ? "secondary" : "outline"}>
-                          {p.anon_readonly ? t("projects.readonly") : t("projects.readwrite")}
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-1">
+                          {p.ref === SYSTEM_PROJECT_REF && (
+                            <Badge variant="default">{t("projects.systemBadge")}</Badge>
+                          )}
+                          <Badge variant={p.anon_readonly ? "secondary" : "outline"}>
+                            {p.anon_readonly ? t("projects.readonly") : t("projects.readwrite")}
+                          </Badge>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground tabular-nums">
                         {p.created_at}

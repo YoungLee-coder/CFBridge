@@ -1,6 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import type { CfAccountResource, ProjectResource } from "@cfbridge/shared";
+import {
+  SYSTEM_PROJECT_REF,
+  type CfAccountResource,
+  type ProjectResource,
+} from "@cfbridge/shared";
 import { api, ApiClientError } from "@/api";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { PageHeader } from "@/components/layouts/page-header";
@@ -42,6 +46,7 @@ export default function OverviewPage() {
   const [deleteCf, setDeleteCf] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteProjectCf, setDeleteProjectCf] = useState(false);
+  const isSystem = project.ref === SYSTEM_PROJECT_REF;
 
   useEffect(() => {
     if (mode !== "attach") {
@@ -318,18 +323,20 @@ export default function OverviewPage() {
                         <code className="text-xs">{r.cf_id}</code>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => {
-                            setDeleteCf(false);
-                            setDetachTarget(r);
-                          }}
-                        >
-                          {t("common.remove")}
-                        </Button>
+                        {!isSystem && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => {
+                              setDeleteCf(false);
+                              setDetachTarget(r);
+                            }}
+                          >
+                            {t("common.remove")}
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -343,21 +350,35 @@ export default function OverviewPage() {
       <section className="shrink-0 border-t border-border px-4 py-3 md:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-sm font-medium text-destructive">{t("project.dangerZone")}</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">{t("project.dangerZoneHint")}</p>
+            <h2
+              className={
+                isSystem
+                  ? "text-sm font-medium"
+                  : "text-sm font-medium text-destructive"
+              }
+            >
+              {isSystem ? t("project.systemProtected") : t("project.dangerZone")}
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {isSystem
+                ? t("project.systemProtectedHint")
+                : t("project.dangerZoneHint")}
+            </p>
           </div>
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            disabled={busy}
-            onClick={() => {
-              setDeleteProjectCf(false);
-              setDeleteOpen(true);
-            }}
-          >
-            {t("project.deleteProject")}
-          </Button>
+          {!isSystem && (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={busy}
+              onClick={() => {
+                setDeleteProjectCf(false);
+                setDeleteOpen(true);
+              }}
+            >
+              {t("project.deleteProject")}
+            </Button>
+          )}
         </div>
       </section>
 

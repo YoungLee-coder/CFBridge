@@ -2,12 +2,19 @@ import type { SetupStatus } from "@cfbridge/shared";
 import type { Env } from "../env";
 import {
   bindSnippet,
+  dataKvBindSnippet,
+  DATA_KV_NAME,
   LATEST_VERSION,
   META_DB_NAME,
   MIGRATIONS,
   WORKER_NAME,
 } from "./migrations";
-import { createD1Database, CfApiError } from "./cf-account";
+import {
+  createD1Database,
+  createKvNamespace,
+  listKvNamespaces,
+  CfApiError,
+} from "./cf-account";
 
 const MIGRATIONS_TABLE = `CREATE TABLE IF NOT EXISTS cfbridge_migrations (
   id TEXT PRIMARY KEY NOT NULL,
@@ -116,7 +123,10 @@ export async function applyPendingMigrations(db: D1Database): Promise<string[]> 
 
 export async function buildSetupStatus(
   env: Env,
-  opts?: { createdDatabaseId?: string | null },
+  opts?: {
+    createdDatabaseId?: string | null;
+    createdNamespaceId?: string | null;
+  },
 ): Promise<SetupStatus> {
   const probe = await probeMeta(env);
   const meta_bound = probe.state !== "missing";
@@ -145,6 +155,7 @@ export async function buildSetupStatus(
   const needs_migration = meta_reachable && pending_migrations.length > 0;
   const ready = meta_reachable && !needs_migration;
   const created = opts?.createdDatabaseId ?? null;
+  const createdNs = opts?.createdNamespaceId ?? null;
 
   return {
     ready,
@@ -159,6 +170,10 @@ export async function buildSetupStatus(
     has_account_credentials,
     bind_snippet: created ? bindSnippet(created) : null,
     created_database_id: created,
+    data_kv_bind_snippet: createdNs
+      ? dataKvBindSnippet(createdNs)
+      : dataKvBindSnippet(),
+    created_namespace_id: createdNs,
   };
 }
 
@@ -179,6 +194,40 @@ export async function createMetaDatabase(env: Env): Promise<{
         `打开 Cloudflare 面板：Workers & Pages → ${WORKER_NAME} → Settings → Bindings`,
         `添加 D1：Variable name = META，选择刚创建的 ${META_DB_NAME}`,
         `保存后回到本页点「重新检测」，再「初始化 / 升级数据库」（无需重新部署）`,
+      ],
+    };
+  } catch (e) {
+    if (e instanceof CfApiError) throw e;
+    throw e;
+  }
+}
+
+export async function createDataKvNamespace(env: Env): Promise<{
+  namespace_id: string;
+  namespace_title: string;
+  reused: boolean;
+  bind_snippet: string;
+  next_steps: string[];
+}> {
+  try {
+    const existing = await listKvNamespaces(env);
+    const found = existing.find((ns) => ns.title === DATA_KV_NAME);
+    const ns = found
+      ? { id: found.id, title: found.title, reused: true }
+      : {
+          ...(await createKvNamespace(env, DATA_KV_NAME)),
+          reused: false,
+        };
+
+    return {
+      namespace_id: ns.id,
+      namespace_title: ns.title || DATA_KV_NAME,
+      reused: ns.reused,
+      bind_snippet: dataKvBindSnippet(ns.id),
+      next_steps: [
+        `打开 Cloudflare 面板：Workers & Pages → ${WORKER_NAME} → Settings → Bindings`,
+        `添加 KV namespace：Variable name = DATA_KV，选择 ${DATA_KV_NAME}`,
+        `保存后回到本页点「重新检测」（无需重新部署）`,
       ],
     };
   } catch (e) {
