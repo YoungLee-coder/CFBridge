@@ -1,0 +1,28 @@
+name = "cfbridge"
+main = "src/index.ts"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Meta D1 — bind in Cloudflare Dashboard after deploy (no database_id in this file):
+#   Workers & Pages → cfbridge → Settings → Bindings → Add → D1 database
+#   Variable name: META
+#   Database: create or select "cfbridge-meta"
+# Then open the Worker URL → Setup → Initialize schema.
+#
+# Keep this section out of production config so Dashboard bindings are not overwritten
+# by wrangler/Git deploy. For local `wrangler dev` / `db:migrate:local`, uncomment:
+#
+# [[d1_databases]]
+# binding = "META"
+# database_name = "cfbridge-meta"
+# database_id = "00000000-0000-0000-0000-000000000001"
+# migrations_dir = "migrations"
+
+[assets]
+directory = "../web/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/admin/*", "/v1/*", "/health", "/health/*"]
+
+[dev]
+port = 8787

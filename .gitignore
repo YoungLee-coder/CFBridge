@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build / cache
+dist/
+.turbo/
+.vite/
+*.tsbuildinfo
+
+# Cloudflare / Wrangler / Miniflare
+.wrangler/
+.mf/
+.dev.vars
+!.dev.vars.example
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs / local overrides
+*.log
+*.local
+
+# Test / coverage (future)
+coverage/
+.nyc_output/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# --- AI configuration ---
+# Thin entry files (tracked). Project knowledge is in .ai/ (tracked).
+# Personal overrides stay out of git.
+CLAUDE.local.md
+AGENTS.local.md
+AGENTS.override.md
+# Track shared .claude config, ignore local overrides.
+.claude/settings.local.json
+# opencode state directory
+.opencode/

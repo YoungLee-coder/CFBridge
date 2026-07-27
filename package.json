@@ -1,0 +1,20 @@
+{
+  "name": "cfbridge",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Single-admin multi-project gateway for Cloudflare KV and D1",
+  "scripts": {
+    "dev": "pnpm --filter @cfbridge/api dev",
+    "dev:api": "pnpm --filter @cfbridge/api exec wrangler dev",
+    "dev:web": "pnpm --filter @cfbridge/web dev",
+    "build": "pnpm --filter @cfbridge/web build && pnpm --filter @cfbridge/api typecheck",
+    "deploy": "pnpm --filter @cfbridge/api deploy",
+    "db:migrate:local": "pnpm --filter @cfbridge/api db:migrate:local",
+    "db:migrate:remote": "pnpm --filter @cfbridge/api db:migrate:remote",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

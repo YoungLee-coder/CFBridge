@@ -1,0 +1,19 @@
+---
+description: CFBridge project context — read .ai/ before non-trivial work
+alwaysApply: true
+---
+
+# CFBridge — project context
+
+Project knowledge lives in `.ai/`. **Read the relevant `.ai/` files before non-trivial work** — do not guess commands, conventions, or architecture.
+
+**`.ai/` file index** — listed in `CLAUDE.md` at the repo root (do not duplicate the list here).
+
+Cursor-specific notes:
+- 单 Worker 架构：API + Dashboard 同源，路径 `/admin`、`/v1`、`/health` 进 Hono，其余走 SPA assets。
+- 工作流技能在 `.claude/skills/cfbridge-*`；用 `/cfbridge-implement-feature`、`/cfbridge-review-pr` 等。
+- 类型改动从 `packages/shared` 开始；数据面与管理端错误信封不同，勿混用。
+- **Persistent memory:** 发现稳定约定缺失于 `.ai/` 时，提议保存并确认后再写。调用 `/cfbridge-remember` 或按 `.ai/project.md` Persistent memory 章节。
+- Personal overrides: create `AGENTS.local.md` or `CLAUDE.local.md` at the repo root (gitignored).
+
+Do not duplicate `.ai/` content here — update `.ai/` files when project knowledge changes.
