@@ -60,11 +60,9 @@ export const en: Messages = {
   },
   setup: {
     title: "Setup",
-    subtitle:
-      "First-time setup: choose a language, bind Meta D1 and DATA_KV, then initialize or upgrade the database schema.",
     chooseLanguage: "Choose language",
     languageHint: "This becomes the default language for this CFBridge instance.",
-    adminPassword: "Admin password (required to create / initialize)",
+    adminPassword: "Admin password (required to initialize)",
     loginRequired: "Enter the admin password and sign in first",
     loginFailed: "Login failed",
     step1Title: "Bind Meta D1 & DATA_KV",
@@ -72,10 +70,7 @@ export const en: Messages = {
     step1BoundBad:
       "META is bound on this Worker but unreachable. Check the D1 binding in the Dashboard points at a valid database.",
     step1Unbound:
-      "This Worker has no usable META D1. Create one in one click, or create it in the Cloudflare Dashboard and bind it as META.",
-    createMetaDb: "Create Meta D1 database",
-    needSecrets:
-      "Set secrets in the Dashboard first: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN",
+      "This project is not bound to a META D1 database yet. Create one in the Cloudflare Dashboard and bind it as META.",
     bindHint: "Bind in the Cloudflare Dashboard (no redeploy after save):",
     step2Title: "Initialize / upgrade schema",
     step2Ok: "Schema is up to date (v{version}).",
@@ -87,9 +82,6 @@ export const en: Messages = {
     needStep1: "Available after binding META in the Dashboard.",
     recheck: "Recheck",
     enterConsole: "Enter console",
-    createdMsg:
-      "Meta D1 created. Bind it in the Dashboard using the steps below, then Recheck and initialize.",
-    createFailed: "Create failed",
     applied: "Applied: {ids}",
     alreadyLatest: "Database is already up to date",
     migrateFailed: "Initialization failed",
@@ -100,13 +92,8 @@ export const en: Messages = {
     dataKvOk:
       "DATA_KV is bound. New KV resources use the shared binding (isolated by project key prefix).",
     dataKvMissing:
-      "DATA_KV is not bound. Create a namespace in one click, then add a KV binding named DATA_KV. You can still attach an existing namespace (slower), but you cannot create a fast-path KV.",
+      "This project is not bound to DATA_KV yet. Create a KV namespace in the Cloudflare Dashboard and bind it as DATA_KV.",
     dataKvHint: "Bind in the Cloudflare Dashboard (no redeploy after save):",
-    createDataKv: "Create DATA_KV namespace",
-    createdDataKvMsg:
-      "DATA_KV namespace created. Bind it in the Dashboard using the steps below, then Recheck.",
-    reusedDataKvMsg:
-      "Found existing namespace cfbridge-data. Bind it in the Dashboard using the steps below, then Recheck.",
     systemProjectTitle: "System project ready — save your secret key",
     systemProjectHint:
       "Created the CFBridge system project (META + DATA_KV). Plaintext is shown only once. This key can read and write instance metadata — keep it safe.",

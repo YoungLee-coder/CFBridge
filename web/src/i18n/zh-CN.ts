@@ -60,11 +60,9 @@ export const zhCN: Messages = {
   },
   setup: {
     title: "初始化",
-    subtitle:
-      "部署后首次使用：选择语言，绑定 Meta D1 与 DATA_KV，并初始化 / 升级数据库 schema。",
     chooseLanguage: "选择语言",
     languageHint: "此语言将成为本 CFBridge 实例的默认语言。",
-    adminPassword: "管理员密码（执行创建 / 初始化需要）",
+    adminPassword: "管理员密码（初始化需要）",
     loginRequired: "请先输入管理员密码并登录",
     loginFailed: "登录失败",
     step1Title: "绑定 Meta D1 与 DATA_KV",
@@ -72,9 +70,7 @@ export const zhCN: Messages = {
     step1BoundBad:
       "Worker 已配置 META 绑定，但当前无法访问。请在面板里检查 D1 绑定是否指向有效数据库。",
     step1Unbound:
-      "当前 Worker 未绑定可用的 META D1。可一键创建，或在 Cloudflare 面板手动创建后绑定（Variable name: META）。",
-    createMetaDb: "创建 Meta D1 数据库",
-    needSecrets: "请先在面板配置 secrets：CLOUDFLARE_ACCOUNT_ID、CLOUDFLARE_API_TOKEN",
+      "当前项目尚未绑定 META D1 数据库。请在 Cloudflare 面板创建后绑定（Variable name: META）。",
     bindHint: "在 Cloudflare 面板绑定（保存后无需重新部署）：",
     step2Title: "初始化 / 升级 schema",
     step2Ok: "Schema 已是最新（v{version}）。",
@@ -86,9 +82,6 @@ export const zhCN: Messages = {
     needStep1: "完成 Meta D1 绑定后，此按钮可用。",
     recheck: "重新检测",
     enterConsole: "进入控制台",
-    createdMsg:
-      "Meta D1 已创建。请按下方步骤在面板绑定到 Worker，再点「重新检测」并初始化。",
-    createFailed: "创建失败",
     applied: "已应用：{ids}",
     alreadyLatest: "数据库已是最新，无需升级",
     migrateFailed: "初始化失败",
@@ -98,13 +91,8 @@ export const zhCN: Messages = {
     dataKvTitle: "DATA_KV（Redis 快路径）",
     dataKvOk: "DATA_KV 已绑定。新建 KV 资源将走共享 Binding（按项目前缀隔离）。",
     dataKvMissing:
-      "尚未绑定 DATA_KV。可一键创建命名空间，再在面板 Bindings 添加 Variable name = DATA_KV。没有它也可以挂载已有 namespace（较慢），但无法「创建」快路径 KV。",
+      "当前项目尚未绑定 DATA_KV。请在 Cloudflare 面板创建命名空间后绑定（Variable name: DATA_KV）。",
     dataKvHint: "在 Cloudflare 面板绑定（保存后无需重新部署）：",
-    createDataKv: "创建 DATA_KV 命名空间",
-    createdDataKvMsg:
-      "DATA_KV 命名空间已创建。请按下方步骤在面板绑定到 Worker，再点「重新检测」。",
-    reusedDataKvMsg:
-      "已找到同名命名空间 cfbridge-data。请按下方步骤在面板绑定到 Worker，再点「重新检测」。",
     systemProjectTitle: "系统项目已就绪 — 请保存服务端密钥",
     systemProjectHint:
       "已自动创建 CFBridge 系统项目（META + DATA_KV）。明文密钥只显示这一次；该密钥可读写实例元数据，请妥善保管。",

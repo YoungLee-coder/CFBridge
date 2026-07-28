@@ -60,7 +60,6 @@ export type Messages = {
   };
   setup: {
     title: string;
-    subtitle: string;
     chooseLanguage: string;
     languageHint: string;
     adminPassword: string;
@@ -70,8 +69,6 @@ export type Messages = {
     step1Ok: string;
     step1BoundBad: string;
     step1Unbound: string;
-    createMetaDb: string;
-    needSecrets: string;
     bindHint: string;
     step2Title: string;
     step2Ok: string;
@@ -83,8 +80,6 @@ export type Messages = {
     needStep1: string;
     recheck: string;
     enterConsole: string;
-    createdMsg: string;
-    createFailed: string;
     applied: string;
     alreadyLatest: string;
     migrateFailed: string;
@@ -95,9 +90,6 @@ export type Messages = {
     dataKvOk: string;
     dataKvMissing: string;
     dataKvHint: string;
-    createDataKv: string;
-    createdDataKvMsg: string;
-    reusedDataKvMsg: string;
     systemProjectTitle: string;
     systemProjectHint: string;
     systemProjectSecret: string;

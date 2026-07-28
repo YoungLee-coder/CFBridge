@@ -2,8 +2,6 @@ import type {
   ApiErrorBody,
   ApiKeyPublic,
   CreateApiKeyResponse,
-  CreateDataKvResponse,
-  CreateMetaDbResponse,
   CreateProjectResponse,
   D1SchemaResponse,
   InstanceSettings,
@@ -70,29 +68,8 @@ async function request<T>(
 }
 
 export const api = {
-  setupStatus(opts?: {
-    createdDatabaseId?: string | null;
-    createdNamespaceId?: string | null;
-  }) {
-    const params = new URLSearchParams();
-    if (opts?.createdDatabaseId) {
-      params.set("created_database_id", opts.createdDatabaseId);
-    }
-    if (opts?.createdNamespaceId) {
-      params.set("created_namespace_id", opts.createdNamespaceId);
-    }
-    const q = params.toString() ? `?${params}` : "";
-    return request<SetupStatus>(`/admin/setup/status${q}`);
-  },
-  createMetaDb() {
-    return request<CreateMetaDbResponse>("/admin/setup/create-meta-db", {
-      method: "POST",
-    });
-  },
-  createDataKv() {
-    return request<CreateDataKvResponse>("/admin/setup/create-data-kv", {
-      method: "POST",
-    });
+  setupStatus() {
+    return request<SetupStatus>("/admin/setup/status");
   },
   migrate(locale?: Locale) {
     return request<MigrateResponse>("/admin/setup/migrate", {

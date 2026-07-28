@@ -2,8 +2,6 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { CheckCircle2Icon } from "lucide-react";
 import type {
   CreateApiKeyResponse,
-  CreateDataKvResponse,
-  CreateMetaDbResponse,
   Locale,
   Project,
   SetupStatus,
@@ -43,8 +41,6 @@ export default function SetupPage({
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [created, setCreated] = useState<CreateMetaDbResponse | null>(null);
-  const [createdKv, setCreatedKv] = useState<CreateDataKvResponse | null>(null);
   const [pickedLocale, setPickedLocale] = useState<Locale | null>(
     () => readStoredLocale() ?? locale,
   );
@@ -54,30 +50,11 @@ export default function SetupPage({
   } | null>(null);
   const [copiedSystem, setCopiedSystem] = useState(false);
 
-  const refresh = useCallback(
-    async (ids?: {
-      databaseId?: string | null;
-      namespaceId?: string | null;
-    }) => {
-      const next = await api.setupStatus({
-        createdDatabaseId:
-          ids?.databaseId ?? created?.database_id ?? status.created_database_id,
-        createdNamespaceId:
-          ids?.namespaceId ??
-          createdKv?.namespace_id ??
-          status.created_namespace_id,
-      });
-      setStatus(next);
-      if (next.ready) onReady();
-    },
-    [
-      created?.database_id,
-      createdKv?.namespace_id,
-      onReady,
-      status.created_database_id,
-      status.created_namespace_id,
-    ],
-  );
+  const refresh = useCallback(async () => {
+    const next = await api.setupStatus();
+    setStatus(next);
+    if (next.ready) onReady();
+  }, [onReady]);
 
   useEffect(() => {
     setStatus(initial);
@@ -101,48 +78,6 @@ export default function SetupPage({
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : t("setup.loginFailed"));
       return false;
-    }
-  }
-
-  async function createDb() {
-    setBusy(true);
-    setError(null);
-    setMsg(null);
-    try {
-      if (!pickedLocale) {
-        setError(t("setup.pickLanguageFirst"));
-        return;
-      }
-      if (!(await ensureAuthed())) return;
-      const res = await api.createMetaDb();
-      setCreated(res);
-      setMsg(t("setup.createdMsg"));
-      await refresh({ databaseId: res.database_id });
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : t("setup.createFailed"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function createKv() {
-    setBusy(true);
-    setError(null);
-    setMsg(null);
-    try {
-      if (!pickedLocale) {
-        setError(t("setup.pickLanguageFirst"));
-        return;
-      }
-      if (!(await ensureAuthed())) return;
-      const res = await api.createDataKv();
-      setCreatedKv(res);
-      setMsg(res.reused ? t("setup.reusedDataKvMsg") : t("setup.createdDataKvMsg"));
-      await refresh({ namespaceId: res.namespace_id });
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : t("setup.createFailed"));
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -196,7 +131,6 @@ export default function SetupPage({
   const bindDone = metaDone && kvDone;
   const schemaDone = status.ready;
   const metaSnippet =
-    created?.bind_snippet ||
     status.bind_snippet ||
     `Cloudflare Dashboard
 → Workers & Pages → cfbridge
@@ -207,7 +141,6 @@ Database: cfbridge-meta
 
 Save. Then click Recheck (no redeploy needed).`;
   const kvSnippet =
-    createdKv?.bind_snippet ||
     status.data_kv_bind_snippet ||
     `Cloudflare Dashboard
 → Workers & Pages → cfbridge
@@ -259,9 +192,6 @@ Save. Then click Recheck (no redeploy needed).`;
             <h1 className="hidden text-2xl font-medium tracking-tight md:block">
               {t("setup.title")}
             </h1>
-            <p className="mt-2 text-sm text-pretty text-muted-foreground">
-              {t("setup.subtitle")}
-            </p>
           </div>
 
           <section className="space-y-3 rounded-md border border-border bg-background p-5">
@@ -327,29 +257,10 @@ Save. Then click Recheck (no redeploy needed).`;
                         ? t("setup.step1BoundBad")
                         : t("setup.step1Unbound")}
                     </p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={busy || !status.has_account_credentials || !pickedLocale}
-                      onClick={() => void createDb()}
-                    >
-                      {busy ? t("common.processing") : t("setup.createMetaDb")}
-                    </Button>
-                    {!status.has_account_credentials && (
-                      <Alert variant="destructive">
-                        <AlertDescription>{t("setup.needSecrets")}</AlertDescription>
-                      </Alert>
-                    )}
                     <p className="text-xs text-muted-foreground">{t("setup.bindHint")}</p>
                     <pre className="overflow-x-auto rounded-md border border-border bg-muted p-3 font-mono text-xs whitespace-pre-wrap">
                       {metaSnippet}
                     </pre>
-                    {(created?.database_id || status.created_database_id) && (
-                      <p className="font-mono text-xs text-muted-foreground">
-                        database_id:{" "}
-                        {created?.database_id || status.created_database_id}
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
@@ -366,29 +277,10 @@ Save. Then click Recheck (no redeploy needed).`;
                     <p className="text-sm text-muted-foreground">
                       {t("setup.dataKvMissing")}
                     </p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={busy || !status.has_account_credentials || !pickedLocale}
-                      onClick={() => void createKv()}
-                    >
-                      {busy ? t("common.processing") : t("setup.createDataKv")}
-                    </Button>
-                    {!status.has_account_credentials && (
-                      <Alert variant="destructive">
-                        <AlertDescription>{t("setup.needSecrets")}</AlertDescription>
-                      </Alert>
-                    )}
                     <p className="text-xs text-muted-foreground">{t("setup.dataKvHint")}</p>
                     <pre className="overflow-x-auto rounded-md border border-border bg-muted p-3 font-mono text-xs whitespace-pre-wrap">
                       {kvSnippet}
                     </pre>
-                    {(createdKv?.namespace_id || status.created_namespace_id) && (
-                      <p className="font-mono text-xs text-muted-foreground">
-                        namespace_id:{" "}
-                        {createdKv?.namespace_id || status.created_namespace_id}
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
