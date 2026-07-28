@@ -306,7 +306,6 @@ export default function KeysPage() {
     <div className="flex h-0 min-h-0 flex-1 flex-col overflow-clip overscroll-none">
       <PageHeader
         title={t("project.tabKeys")}
-        description={t("project.keysPageHint")}
       />
 
       <div className="h-0 min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-none scrollbar-none p-4 md:p-6">

@@ -29,7 +29,7 @@ Fetch the full API reference as Markdown. Do not scrape the Dashboard HTML.
 ## Optional
 
 - [Human docs page](${origin}/docs): Rendered docs with copy-as-Markdown
-- [Health](${origin}/health): Worker readiness JSON
+- [Health](${origin}/health): \`{ ok: true }\` liveness JSON
 `;
 }
 

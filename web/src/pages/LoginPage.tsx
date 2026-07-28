@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { BrandMark } from "@/components/brand-mark";
+import { LoginSkeleton } from "@/components/login-skeleton";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -32,13 +33,17 @@ export default function LoginPage() {
     }
   }
 
+  if (!ready) {
+    return <LoginSkeleton label={t("common.loading")} />;
+  }
+
   return (
     <div className="relative flex min-h-svh items-center justify-center bg-canvas p-6">
-      <div className="absolute top-4 right-4">
+      <div className="animate-login-chrome absolute top-4 right-4">
         <ThemeToggle />
       </div>
       <div className="w-full max-w-[360px]">
-        <div className="mb-8 text-center">
+        <div className="animate-login-brand mb-8 text-center">
           <BrandMark tiled className="mx-auto mb-5 size-10 rounded-md" />
           <h1 className="text-2xl font-semibold tracking-tight">
             CF<span className="text-primary">Bridge</span>
@@ -47,7 +52,7 @@ export default function LoginPage() {
             {t("login.subtitle")}
           </p>
         </div>
-        <div className="rounded-md border border-border bg-background p-6 shadow-none">
+        <div className="animate-login-form rounded-md border border-border bg-background p-6 shadow-none">
           <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
             <div className="space-y-2">
               <Label htmlFor="password">{t("login.adminPassword")}</Label>
@@ -61,11 +66,11 @@ export default function LoginPage() {
                 autoFocus
               />
             </div>
-            {error && (
-              <Alert variant="destructive">
+            {error ? (
+              <Alert className="animate-content-enter" variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
-            )}
+            ) : null}
             <Button className="w-full" type="submit" disabled={loading}>
               {loading ? t("login.signingIn") : t("login.signIn")}
             </Button>

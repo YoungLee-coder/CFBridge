@@ -153,7 +153,7 @@ curl -s "$API/admin/projects/$PROJECT_ID/resources/create" \
 | GET/POST | `/admin/projects/:id/keys` | 列表 / 签发 Key |
 | POST | `/admin/projects/:id/keys/:keyId/revoke` | 吊销 |
 
-### 数据端（Bearer 项目 API Key，或 Redis 的 `?_token=`）
+### 数据端（Bearer 项目 API Key）
 
 #### Redis REST（Upstash 兼容子集；默认写入共享 DATA_KV，key 前缀为 `{ref}/`）
 
@@ -165,7 +165,7 @@ curl -s "$API/admin/projects/$PROJECT_ID/resources/create" \
 
 成功：`{ "result": … }`；失败：`{ "error": "ERR …" }`（与管理端错误信封不同，以兼容 `@upstash/redis`）。
 
-支持：`PING`、`GET`、`SET`（仅 `EX`）、`SETEX`、`DEL`、`EXISTS`、`MGET`、`MSET`、`EXPIRE`、`KEYS`（`*` / `prefix*`）、`SCAN`。
+支持：`PING`、`GET`、`SET`（仅 `EX`）、`SETEX`、`DEL`、`EXISTS`、`MGET`、`MSET`、`EXPIRE`、`PERSIST`、`TTL`、`KEYS`（`*` / `prefix*`）、`SCAN`。
 不支持：Hash/List/Set/ZSet、`INCR*`、`SET NX/XX/PX`、`/multi-exec`、Pub/Sub。
 TTL：`EX` / `SETEX` / `EXPIRE` 须 **≥ 60 秒**（Cloudflare KV 限制）。
 
@@ -333,7 +333,7 @@ Workers & Pages → **cfbridge** → Settings → Variables and Secrets，添加
 | `/` | Setup 或 Dashboard |
 | `/admin/*` | 管理 / Setup API |
 | `/v1/*` | 数据 API |
-| `/health` | 健康检查（含 `ready`） |
+| `/health` | 健康检查（仅 `{ ok: true }`） |
 
 可选：在 Cloudflare Dashboard 给该 Worker 绑自定义域名。
 

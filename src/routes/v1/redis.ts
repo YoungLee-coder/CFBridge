@@ -28,6 +28,7 @@ const WRITE_COMMANDS = new Set([
   "del",
   "mset",
   "expire",
+  "persist",
 ]);
 
 class RedisCmdError extends Error {
@@ -45,12 +46,9 @@ type ExecCtx = {
 
 const redis = new Hono<AppEnv>();
 
-/** Upstash-style auth: Bearer or ?_token= ; errors as { error: string } */
+/** Upstash-style auth: Authorization Bearer only; errors as { error: string } */
 const requireRedisApiKey = createMiddleware<AppEnv>(async (c, next) => {
-  const token =
-    getBearerToken(c.req.header("Authorization")) ||
-    c.req.query("_token")?.trim() ||
-    null;
+  const token = getBearerToken(c.req.header("Authorization"));
   if (!token) {
     return c.json({ error: "WRONGPASS invalid token" }, 401);
   }
@@ -288,6 +286,20 @@ async function executeCommand(ctx: ExecCtx, argv: string[]): Promise<unknown> {
       return 1;
     }
 
+    case "persist": {
+      if (args.length !== 1) {
+        throw new RedisCmdError(
+          "ERR wrong number of arguments for 'persist' command",
+        );
+      }
+      const { value, metadata } = await kvBackendGet(ctx.backend, args[0]!);
+      if (value === null) return 0;
+      await kvBackendPut(ctx.backend, args[0]!, value, {
+        metadata: metadata ?? undefined,
+      });
+      return 1;
+    }
+
     case "keys": {
       if (args.length !== 1) {
         throw new RedisCmdError(
@@ -307,6 +319,25 @@ async function executeCommand(ctx: ExecCtx, argv: string[]): Promise<unknown> {
         cursor = page.list_complete ? undefined : page.cursor;
       } while (cursor);
       return names;
+    }
+
+    case "ttl": {
+      if (args.length !== 1) {
+        throw new RedisCmdError(
+          "ERR wrong number of arguments for 'ttl' command",
+        );
+      }
+      const key = args[0]!;
+      const { value } = await kvBackendGet(ctx.backend, key);
+      if (value === null) return -2;
+      const page = await kvBackendList(ctx.backend, {
+        userPrefix: key,
+        limit: 1000,
+      });
+      const entry = page.keys.find((k) => k.name === key);
+      if (entry?.expiration === undefined) return -1;
+      const now = Math.floor(Date.now() / 1000);
+      return Math.max(0, entry.expiration - now);
     }
 
     case "scan": {

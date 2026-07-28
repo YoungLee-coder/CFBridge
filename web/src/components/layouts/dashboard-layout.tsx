@@ -15,6 +15,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { CommandMenu } from "@/components/command-menu";
 import { ProjectSwitcher } from "@/components/project-switcher";
 import { BrandMark } from "@/components/brand-mark";
+import { PageTransition } from "@/components/page-transition";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -164,7 +165,11 @@ function DashboardChrome({ children }: { children?: ReactNode }) {
                         tooltip={item.label}
                         className="data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground group-data-[collapsible=icon]:[&>span]:hidden"
                       >
-                        <NavLink to={item.to} end={item.end} onClick={closeMobile}>
+                        <NavLink
+                          to={item.to}
+                          end={item.end}
+                          onClick={closeMobile}
+                        >
                           <item.icon />
                           <span>{item.label}</span>
                         </NavLink>
@@ -197,7 +202,10 @@ function DashboardChrome({ children }: { children?: ReactNode }) {
                             tooltip={item.label}
                             className="data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground group-data-[collapsible=icon]:[&>span]:hidden"
                           >
-                            <NavLink to={item.to} onClick={closeMobile}>
+                            <NavLink
+                              to={item.to}
+                              onClick={closeMobile}
+                            >
                               <item.icon />
                               <span>{item.label}</span>
                             </NavLink>
@@ -293,9 +301,7 @@ function DashboardChrome({ children }: { children?: ReactNode }) {
             <ThemeToggle />
           </div>
         </header>
-        <div className="flex h-0 min-h-0 flex-1 flex-col overflow-clip overscroll-none">
-          {children ?? <Outlet />}
-        </div>
+        <PageTransition>{children ?? <Outlet />}</PageTransition>
       </SidebarInset>
 
       <CommandMenu open={cmdOpen} onOpenChange={setCmdOpen} />

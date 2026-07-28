@@ -163,19 +163,72 @@
   }
 }
 
-@keyframes empty-enter {
+/* Soft rise — page switch + content ready (sidebar stays put) */
+@keyframes soft-rise {
   from {
     opacity: 0;
-    transform: translateY(12px);
-    filter: blur(4px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
-    filter: blur(0);
   }
 }
 
+@keyframes skeleton-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-page-enter {
+  animation: soft-rise 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-content-enter {
+  animation: soft-rise 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 .animate-empty-enter {
-  animation: empty-enter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: soft-rise 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-skeleton-in {
+  animation: skeleton-in 180ms ease-out both;
+}
+
+/* Login: short staggered soft-rise (brand → form → chrome) */
+.animate-login-brand {
+  animation: soft-rise 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-login-form {
+  animation: soft-rise 240ms cubic-bezier(0.16, 1, 0.3, 1) 90ms both;
+}
+
+.animate-login-chrome {
+  animation: skeleton-in 200ms ease-out 40ms both;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.shimmering-loader {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(
+    to right,
+    var(--border) 4%,
+    var(--muted) 25%,
+    var(--border) 36%
+  );
+  background-size: 1000px 100%;
 }

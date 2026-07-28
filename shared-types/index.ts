@@ -1,6 +1,7 @@
 export type ApiKeyRole = "anon" | "service_role";
 export type ResourceKind = "kv" | "d1" | "r2";
-/** KV: binding = shared DATA_KV; rest = Account API to a dedicated namespace. D1 is always rest. */
+/** KV: binding = shared DATA_KV; rest = Account API to a dedicated namespace.
+ *  D1: binding = shared META; rest = Account API to a dedicated database UUID. */
 export type ResourceAccessMode = "binding" | "rest";
 export type Locale = "en" | "zh-CN";
 
@@ -40,7 +41,7 @@ export interface ProjectResource {
   id: string;
   project_id: string;
   kind: ResourceKind;
-  /** For KV binding mode this is the sentinel "DATA_KV"; otherwise a CF resource id. */
+  /** KV binding: sentinel "DATA_KV"; D1 binding: sentinel "META"; otherwise a CF resource UUID. */
   cf_id: string;
   name: string;
   access_mode: ResourceAccessMode;
@@ -170,10 +171,55 @@ export interface UpdateSettingsBody {
   locale: Locale;
 }
 
+export interface RedisKeyEntry {
+  name: string;
+  expiration?: number; // unix seconds
+  metadata?: unknown;
+}
+
+export interface RedisKeysRequest {
+  prefix?: string;
+  cursor?: string;
+  limit?: number; // 1-1000, default 100
+}
+
 export interface KvListResponse {
-  keys: Array<{ name: string; expiration?: number; metadata?: unknown }>;
+  keys: RedisKeyEntry[];
   cursor?: string;
   list_complete: boolean;
+}
+
+export interface RedisInspectRequest {
+  key: string;
+}
+
+export interface RedisInspectResponse {
+  key: string;
+  value: string | null;
+  metadata: unknown;
+  /** Absolute unix expiration if set */
+  expiration?: number;
+  /** Remaining TTL seconds; -1 = no expiry; -2 = missing key */
+  ttl: number;
+}
+
+export interface D1SchemaColumn {
+  cid: number;
+  name: string;
+  type: string;
+  notnull: number;
+  dflt_value: unknown;
+  pk: number;
+}
+
+export interface D1SchemaTable {
+  name: string;
+  type: "table" | "view";
+  columns: D1SchemaColumn[];
+}
+
+export interface D1SchemaResponse {
+  tables: D1SchemaTable[];
 }
 
 export function apiError(code: ErrorCode, message: string): ApiErrorBody {

@@ -14,6 +14,7 @@ import {
 import * as cf from "../../lib/cf-account";
 import { CfApiError } from "../../lib/cf-account";
 import { SHARED_KV_CF_ID, purgeBindingPrefix } from "../../lib/kv-backend";
+import { SHARED_META_CF_ID } from "../../lib/d1-backend";
 import {
   isMetaCfId,
   isSystemProject,
@@ -52,6 +53,14 @@ resources.post("/:projectId/resources/attach", async (c) => {
     return badRequest(c, "cf_id is required");
   }
 
+  const cfId = body.cf_id.trim();
+  if (cfId === SHARED_KV_CF_ID || cfId === SHARED_META_CF_ID) {
+    return badRequest(
+      c,
+      `cf_id '${cfId}' is reserved for the system Worker binding; use create (KV) or attach a real Cloudflare resource id`,
+    );
+  }
+
   const existing = await getMeta(c.env).prepare(
     "SELECT id FROM project_resources WHERE project_id = ? AND kind = ?",
   )
@@ -68,7 +77,7 @@ resources.post("/:projectId/resources/attach", async (c) => {
     `INSERT INTO project_resources (id, project_id, kind, cf_id, name, access_mode)
      VALUES (?, ?, ?, ?, ?, 'rest')`,
   )
-    .bind(id, project.id, body.kind, body.cf_id.trim(), name)
+    .bind(id, project.id, body.kind, cfId, name)
     .run();
 
   const row = await getMeta(c.env).prepare(

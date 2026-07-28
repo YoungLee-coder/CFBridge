@@ -5,24 +5,25 @@ import type {
   CreateDataKvResponse,
   CreateMetaDbResponse,
   CreateProjectResponse,
+  D1SchemaResponse,
   InstanceSettings,
+  KvListResponse,
   ListCfResourcesResponse,
   Locale,
   MigrateResponse,
   Project,
   ProjectResource,
+  RedisInspectResponse,
   SetupStatus,
 } from "@cfbridge/shared";
 
-const TOKEN_KEY = "cfbridge_admin_token";
+/** Legacy localStorage key — cleared on load so old sessions don't linger. */
+const LEGACY_TOKEN_KEY = "cfbridge_admin_token";
 
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token: string | null) {
-  if (token) localStorage.setItem(TOKEN_KEY, token);
-  else localStorage.removeItem(TOKEN_KEY);
+try {
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+} catch {
+  /* ignore quota / private mode */
 }
 
 export class ApiClientError extends Error {
@@ -39,17 +40,13 @@ export class ApiClientError extends Error {
 async function request<T>(
   path: string,
   init: RequestInit = {},
-  auth = true,
 ): Promise<T> {
   const headers = new Headers(init.headers);
   if (!headers.has("Content-Type") && init.body) {
     headers.set("Content-Type", "application/json");
   }
-  if (auth) {
-    const token = getToken();
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-  }
 
+  // Session is HttpOnly cookie only; never send Bearer from localStorage.
   const res = await fetch(path, { ...init, headers, credentials: "include" });
   const text = await res.text();
   let json: unknown = null;
@@ -85,7 +82,7 @@ export const api = {
       params.set("created_namespace_id", opts.createdNamespaceId);
     }
     const q = params.toString() ? `?${params}` : "";
-    return request<SetupStatus>(`/admin/setup/status${q}`, {}, false);
+    return request<SetupStatus>(`/admin/setup/status${q}`);
   },
   createMetaDb() {
     return request<CreateMetaDbResponse>("/admin/setup/create-meta-db", {
@@ -104,7 +101,7 @@ export const api = {
     });
   },
   getSettings() {
-    return request<InstanceSettings>("/admin/settings", {}, false);
+    return request<InstanceSettings>("/admin/settings");
   },
   updateLocale(locale: Locale) {
     return request<InstanceSettings>("/admin/settings", {
@@ -113,11 +110,10 @@ export const api = {
     });
   },
   login(password: string) {
-    return request<{ token: string; role: string }>(
-      "/admin/auth/login",
-      { method: "POST", body: JSON.stringify({ password }) },
-      false,
-    );
+    return request<{ token: string; role: string }>("/admin/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    });
   },
   me() {
     return request<{ role: string }>("/admin/auth/me");
@@ -213,38 +209,46 @@ export const api = {
     );
     return res.result;
   },
-  redisList(projectId: string, prefix = "") {
-    const pattern = prefix ? `${prefix}*` : "*";
-    return this.redisCommand(projectId, ["KEYS", pattern]).then(
-      (result) =>
-        ({
-          keys: (Array.isArray(result) ? result : []).map((name) => ({
-            name: String(name),
-          })),
-          list_complete: true,
-        }) as {
-          keys: Array<{ name: string }>;
-          cursor?: string;
-          list_complete: boolean;
-        },
+  redisKeys(
+    projectId: string,
+    opts: { prefix?: string; cursor?: string; limit?: number } = {},
+  ) {
+    return request<KvListResponse>(
+      `/admin/projects/${projectId}/browser/redis/keys`,
+      { method: "POST", body: JSON.stringify(opts) },
     );
   },
-  redisGet(projectId: string, key: string) {
-    return this.redisCommand(projectId, ["GET", key]).then((value) => ({
-      key,
-      value: value == null ? "" : String(value),
-      metadata: null as unknown,
-    }));
+  redisInspect(projectId: string, key: string) {
+    return request<RedisInspectResponse>(
+      `/admin/projects/${projectId}/browser/redis/inspect`,
+      { method: "POST", body: JSON.stringify({ key }) },
+    );
   },
-  redisSet(projectId: string, key: string, value: string) {
-    return this.redisCommand(projectId, ["SET", key, value]);
+  redisSet(
+    projectId: string,
+    key: string,
+    value: string,
+    ttlSeconds?: number,
+  ) {
+    const argv =
+      ttlSeconds != null && ttlSeconds > 0
+        ? ["SET", key, value, "EX", String(ttlSeconds)]
+        : ["SET", key, value];
+    return this.redisCommand(projectId, argv);
   },
-  redisDelete(projectId: string, key: string) {
-    return this.redisCommand(projectId, ["DEL", key]);
+  redisDelete(projectId: string, keys: string | string[]) {
+    const list = Array.isArray(keys) ? keys : [keys];
+    return this.redisCommand(projectId, ["DEL", ...list]);
+  },
+  redisExpire(projectId: string, key: string, ttlSeconds: number) {
+    return this.redisCommand(projectId, ["EXPIRE", key, String(ttlSeconds)]);
+  },
+  redisPersist(projectId: string, key: string) {
+    return this.redisCommand(projectId, ["PERSIST", key]);
   },
   d1Query(projectId: string, sql: string, params: unknown[] = []) {
     return request<{
-      success: true;
+      success: boolean;
       errors: unknown[];
       messages: unknown[];
       result: unknown;
@@ -252,5 +256,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ sql, params }),
     });
+  },
+  d1Schema(projectId: string) {
+    return request<D1SchemaResponse>(
+      `/admin/projects/${projectId}/browser/d1/schema`,
+      { method: "POST" },
+    );
   },
 };

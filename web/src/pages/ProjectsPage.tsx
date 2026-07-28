@@ -398,118 +398,138 @@ export default function ProjectsPage() {
         )}
 
         {loading ? (
-          <div className="space-y-3" aria-busy="true" aria-label={t("common.loading")}>
+          <div
+            className="animate-skeleton-in space-y-3"
+            aria-busy="true"
+            aria-label={t("common.loading")}
+          >
             {[0, 1, 2].map((i) => (
               <Skeleton key={i} className="h-24 w-full rounded-md" />
             ))}
           </div>
-        ) : projects.length === 0 ? (
-          <div className="animate-empty-enter flex min-h-[22rem] flex-col items-center justify-center rounded-md border border-dashed border-border bg-background px-6 py-16 text-center">
-            <ProjectCubeIcon className="mb-5 size-16 text-muted-foreground" />
-            <h2 className="text-base font-semibold tracking-tight">{t("projects.emptyTitle")}</h2>
-            <p className="mt-1.5 max-w-sm text-sm text-pretty text-muted-foreground">
-              {t("projects.emptyHint")}
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-5 bg-background"
-              onClick={() => setShowCreate(true)}
-            >
-              <PlusIcon data-icon="inline-start" />
-              {t("projects.createCta")}
-            </Button>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="rounded-md border border-dashed border-border bg-background px-6 py-12 text-center text-sm text-muted-foreground">
-            {t("projects.empty")}
-          </div>
-        ) : view === "grid" ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((p) => (
-              <Link
-                key={p.id}
-                to={`/projects/${p.id}/overview`}
-                className={cn(
-                  "group rounded-md border border-border bg-background p-4 no-underline shadow-none",
-                  "transition-[border-color,background-color] duration-150",
-                  "[@media(hover:hover)]:hover:border-primary/40 [@media(hover:hover)]:hover:bg-card",
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-foreground group-hover:text-primary">
-                      {p.name}
-                    </div>
-                    <code className="mt-1 block truncate text-xs text-muted-foreground">
-                      {p.ref}
-                    </code>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
-                    {p.ref === SYSTEM_PROJECT_REF && (
-                      <Badge variant="default">{t("projects.systemBadge")}</Badge>
-                    )}
-                    <Badge variant={p.anon_readonly ? "secondary" : "outline"}>
-                      {p.anon_readonly ? t("projects.readonly") : t("projects.readwrite")}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="mt-4 text-xs text-muted-foreground tabular-nums">
-                  {p.created_at}
-                </div>
-              </Link>
-            ))}
-          </div>
         ) : (
-          <div className="overflow-hidden rounded-md border border-border bg-background">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead>{t("common.name")}</TableHead>
-                  <TableHead>{t("projects.colRef")}</TableHead>
-                  <TableHead>{t("project.colStatus")}</TableHead>
-                  <TableHead className="text-right">{t("projects.colCreated")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((p) => {
-                  const href = `/projects/${p.id}/overview`;
-                  return (
-                    <TableRow
-                      key={p.id}
-                      className="cursor-pointer"
-                      tabIndex={0}
-                      role="link"
-                      onClick={() => navigate(href)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          navigate(href);
-                        }
-                      }}
-                    >
-                      <TableCell className="font-medium">{p.name}</TableCell>
-                      <TableCell>
-                        <code className="text-xs">{p.ref}</code>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap items-center gap-1">
-                          {p.ref === SYSTEM_PROJECT_REF && (
-                            <Badge variant="default">{t("projects.systemBadge")}</Badge>
-                          )}
-                          <Badge variant={p.anon_readonly ? "secondary" : "outline"}>
-                            {p.anon_readonly ? t("projects.readonly") : t("projects.readwrite")}
-                          </Badge>
+          <div className="animate-content-enter">
+            {projects.length === 0 ? (
+              <div className="flex min-h-[22rem] flex-col items-center justify-center rounded-md border border-dashed border-border bg-background px-6 py-16 text-center">
+                <ProjectCubeIcon className="mb-5 size-16 text-muted-foreground" />
+                <h2 className="text-base font-semibold tracking-tight">
+                  {t("projects.emptyTitle")}
+                </h2>
+                <p className="mt-1.5 max-w-sm text-sm text-pretty text-muted-foreground">
+                  {t("projects.emptyHint")}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-5 bg-background"
+                  onClick={() => setShowCreate(true)}
+                >
+                  <PlusIcon data-icon="inline-start" />
+                  {t("projects.createCta")}
+                </Button>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="rounded-md border border-dashed border-border bg-background px-6 py-12 text-center text-sm text-muted-foreground">
+                {t("projects.empty")}
+              </div>
+            ) : view === "grid" ? (
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {filtered.map((p) => (
+                  <Link
+                    key={p.id}
+                    to={`/projects/${p.id}/overview`}
+                    className={cn(
+                      "group rounded-md border border-border bg-background p-4 no-underline shadow-none",
+                      "transition-[border-color,background-color] duration-150",
+                      "[@media(hover:hover)]:hover:border-primary/40 [@media(hover:hover)]:hover:bg-card",
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium text-foreground group-hover:text-primary">
+                          {p.name}
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground tabular-nums">
-                        {p.created_at}
-                      </TableCell>
+                        <code className="mt-1 block truncate text-xs text-muted-foreground">
+                          {p.ref}
+                        </code>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        {p.ref === SYSTEM_PROJECT_REF && (
+                          <Badge variant="default">{t("projects.systemBadge")}</Badge>
+                        )}
+                        <Badge variant={p.anon_readonly ? "secondary" : "outline"}>
+                          {p.anon_readonly
+                            ? t("projects.readonly")
+                            : t("projects.readwrite")}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="mt-4 text-xs text-muted-foreground tabular-nums">
+                      {p.created_at}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-md border border-border bg-background">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>{t("common.name")}</TableHead>
+                      <TableHead>{t("projects.colRef")}</TableHead>
+                      <TableHead>{t("project.colStatus")}</TableHead>
+                      <TableHead className="text-right">
+                        {t("projects.colCreated")}
+                      </TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((p) => {
+                      const href = `/projects/${p.id}/overview`;
+                      return (
+                        <TableRow
+                          key={p.id}
+                          className="cursor-pointer"
+                          tabIndex={0}
+                          role="link"
+                          onClick={() => navigate(href)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              navigate(href);
+                            }
+                          }}
+                        >
+                          <TableCell className="font-medium">{p.name}</TableCell>
+                          <TableCell>
+                            <code className="text-xs">{p.ref}</code>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap items-center gap-1">
+                              {p.ref === SYSTEM_PROJECT_REF && (
+                                <Badge variant="default">
+                                  {t("projects.systemBadge")}
+                                </Badge>
+                              )}
+                              <Badge
+                                variant={p.anon_readonly ? "secondary" : "outline"}
+                              >
+                                {p.anon_readonly
+                                  ? t("projects.readonly")
+                                  : t("projects.readwrite")}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground tabular-nums">
+                            {p.created_at}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -536,16 +556,6 @@ export default function ProjectsPage() {
               </span>
             </div>
           </div>
-
-          <Button type="button" variant="outline" className="mt-5 w-full bg-background" asChild>
-            <a
-              href="https://github.com/YoungLee-coder/cfbridge"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {t("projects.instanceDocs")}
-            </a>
-          </Button>
         </div>
       </aside>
       </div>

@@ -30,12 +30,27 @@ export function parseCookie(
   return null;
 }
 
-export function sessionCookie(token: string, maxAge = 60 * 60 * 24 * 7): string {
-  return `${COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`;
+export function sessionCookie(
+  token: string,
+  opts?: { maxAge?: number; secure?: boolean },
+): string {
+  const maxAge = opts?.maxAge ?? 60 * 60 * 24 * 7;
+  const secure = opts?.secure ? "; Secure" : "";
+  return `${COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`;
 }
 
-export function clearSessionCookie(): string {
-  return `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+export function clearSessionCookie(opts?: { secure?: boolean }): string {
+  const secure = opts?.secure ? "; Secure" : "";
+  return `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`;
+}
+
+/** Prefer Secure on HTTPS; omit on local HTTP wrangler so cookies still stick. */
+export function cookieSecureFromRequest(url: string): boolean {
+  try {
+    return new URL(url).protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 export async function loginAdmin(

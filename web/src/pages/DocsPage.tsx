@@ -56,7 +56,7 @@ export default function DocsPage() {
   const html = markdown ? renderMarkdown(markdown) : "";
 
   return (
-    <div className="flex h-svh flex-col overflow-clip bg-canvas">
+    <div className="animate-page-enter flex h-svh flex-col overflow-clip bg-canvas">
       <header className="shrink-0 border-b border-border/80 bg-canvas/90 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -127,13 +127,15 @@ export default function DocsPage() {
         ) : null}
 
         {!markdown && !error ? (
-          <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
+          <p className="animate-skeleton-in text-sm text-muted-foreground">
+            {t("common.loading")}
+          </p>
         ) : null}
 
         {markdown ? (
           <article
             className={cn(
-              "docs-prose text-sm leading-relaxed text-foreground",
+              "animate-content-enter docs-prose text-sm leading-relaxed text-foreground",
               "[&_h1]:mb-4 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:tracking-tight",
               "[&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:border-b [&_h2]:border-border/70 [&_h2]:pb-2 [&_h2]:text-lg [&_h2]:font-semibold",
               "[&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-medium",

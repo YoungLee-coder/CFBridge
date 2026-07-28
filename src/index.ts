@@ -19,10 +19,19 @@ const app = new Hono<AppEnv>();
 
 registerDocsRoutes(app);
 
+/** Admin: only same-origin (Dashboard). Credentials allowed for session cookie. */
 app.use(
   "/admin/*",
   cors({
-    origin: (origin) => origin || "*",
+    origin: (origin, c) => {
+      if (!origin) return null;
+      try {
+        if (origin === new URL(c.req.url).origin) return origin;
+      } catch {
+        /* ignore */
+      }
+      return null;
+    },
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -30,36 +39,29 @@ app.use(
   }),
 );
 
+/** Data plane: Bearer API keys from any origin; no cookies. */
 app.use(
   "/v1/*",
   cors({
-    origin: (origin) => origin || "*",
+    origin: "*",
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
+    credentials: false,
     maxAge: 86400,
   }),
 );
 
 app.get("/health", async (c) => {
-  if (isReadyCached()) {
-    return c.json({
-      ok: true,
-      ready: true,
-      meta_reachable: true,
-      needs_migration: false,
-      data_kv_bound: Boolean(c.env.DATA_KV),
-    });
+  // Warm ready cache for requireReady without leaking internal setup state.
+  if (!isReadyCached()) {
+    try {
+      const status = await buildSetupStatus(c.env);
+      noteReadyFromStatus(status.ready);
+    } catch {
+      /* health stays minimal */
+    }
   }
-  const status = await buildSetupStatus(c.env);
-  noteReadyFromStatus(status.ready);
-  return c.json({
-    ok: true,
-    ready: status.ready,
-    meta_reachable: status.meta_reachable,
-    needs_migration: status.needs_migration,
-    data_kv_bound: status.data_kv_bound,
-  });
+  return c.json({ ok: true });
 });
 
 app.route("/admin/setup", setup);
@@ -105,7 +107,7 @@ app.onError((err, c) => {
     {
       error: {
         code: "internal_error",
-        message: err.message || "Internal error",
+        message: "Internal error",
       },
     },
     500,

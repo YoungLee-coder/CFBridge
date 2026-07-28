@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { api, getToken, setToken } from "./api";
+import { api } from "./api";
 
 interface AuthState {
   ready: boolean;
@@ -23,24 +23,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authed, setAuthed] = useState(false);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      setReady(true);
-      return;
-    }
+    // Probe HttpOnly session cookie — no token in localStorage.
     api
       .me()
       .then(() => setAuthed(true))
-      .catch(() => {
-        setToken(null);
-        setAuthed(false);
-      })
+      .catch(() => setAuthed(false))
       .finally(() => setReady(true));
   }, []);
 
   const login = useCallback(async (password: string) => {
-    const res = await api.login(password);
-    setToken(res.token);
+    await api.login(password);
     setAuthed(true);
   }, []);
 
@@ -50,7 +42,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore
     }
-    setToken(null);
     setAuthed(false);
   }, []);
 

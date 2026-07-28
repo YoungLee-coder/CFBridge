@@ -130,7 +130,7 @@ setup.post("/migrate", requireAdmin, async (c) => {
         };
       }
     } catch (e) {
-      // Schema is ready; seeding is best-effort (e.g. missing CF credentials for META uuid).
+      // Schema is ready; seeding is best-effort.
       console.error(
         "ensureSystemProject failed after migrate:",
         e instanceof Error ? e.message : e,

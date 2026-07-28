@@ -102,17 +102,24 @@ export function ProjectLayout() {
 
   if (loading) {
     return (
-      <div className="space-y-3 p-4 md:p-6" aria-busy="true">
+      <div
+        className="animate-skeleton-in space-y-3 p-4 md:p-6"
+        aria-busy="true"
+      >
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-4 w-72" />
         <Skeleton className="h-40 w-full" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
       </div>
     );
   }
 
   if (!project || !value) {
     return (
-      <div className="space-y-4 p-4 md:p-6">
+      <div className="animate-content-enter space-y-4 p-4 md:p-6">
         <Alert variant="destructive">
           <AlertDescription>{error || t("project.notFound")}</AlertDescription>
         </Alert>
@@ -125,7 +132,7 @@ export function ProjectLayout() {
 
   return (
     <ProjectContext.Provider value={value}>
-      <div className="flex h-0 min-h-0 min-w-0 flex-1 flex-col overflow-clip overscroll-none">
+      <div className="animate-content-enter flex h-0 min-h-0 min-w-0 flex-1 flex-col overflow-clip overscroll-none">
         {error ? (
           <div className="shrink-0 border-b border-border px-4 py-2 md:px-6">
             <Alert variant="destructive">

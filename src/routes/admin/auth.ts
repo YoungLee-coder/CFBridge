@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { AdminLoginBody } from "@cfbridge/shared";
 import {
   clearSessionCookie,
+  cookieSecureFromRequest,
   loginAdmin,
   requireAdmin,
   sessionCookie,
@@ -29,12 +30,15 @@ adminAuth.post("/login", async (c) => {
   );
   if (!token) return unauthorized(c, "Invalid password");
 
-  c.header("Set-Cookie", sessionCookie(token));
+  const secure = cookieSecureFromRequest(c.req.url);
+  c.header("Set-Cookie", sessionCookie(token, { secure }));
+  // token kept for curl / programmatic Bearer clients; Dashboard uses HttpOnly cookie only
   return c.json({ token, role: "admin" });
 });
 
 adminAuth.post("/logout", requireAdmin, async (c) => {
-  c.header("Set-Cookie", clearSessionCookie());
+  const secure = cookieSecureFromRequest(c.req.url);
+  c.header("Set-Cookie", clearSessionCookie({ secure }));
   return c.json({ ok: true });
 });
 

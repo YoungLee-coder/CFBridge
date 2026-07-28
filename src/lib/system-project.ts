@@ -8,6 +8,7 @@ import { mintApiKey } from "./api-keys";
 import { listD1Databases } from "./cf-account";
 import { generateId } from "./crypto";
 import { toProject, type ProjectRow } from "./db";
+import { SHARED_META_CF_ID } from "./d1-backend";
 import { SHARED_KV_CF_ID } from "./kv-backend";
 import { DATA_KV_NAME, META_DB_NAME } from "./migrations";
 import { getMeta } from "./meta";
@@ -64,6 +65,7 @@ export async function resolveMetaDatabaseId(env: Env): Promise<string | null> {
 
 /** True when cf_id refers to the instance META D1 (must never delete_cf). */
 export async function isMetaCfId(env: Env, cfId: string): Promise<boolean> {
+  if (cfId === SHARED_META_CF_ID) return true;
   const id = await resolveMetaDatabaseId(env);
   return id !== null && id === cfId;
 }
@@ -76,7 +78,8 @@ export interface EnsureSystemProjectResult {
 
 /**
  * Idempotently ensure the reserved CFBridge system project exists with
- * META (rest D1) and DATA_KV (binding) attached when available.
+ * META (binding D1) and DATA_KV (binding KV) attached when available.
+ * Uses Worker bindings (same pattern as DATA_KV) — no Account API UUID lookup.
  */
 export async function ensureSystemProject(
   env: Env,
@@ -114,21 +117,33 @@ export async function ensureSystemProject(
 
   const existingD1 = await db
     .prepare(
-      "SELECT id FROM project_resources WHERE project_id = ? AND kind = 'd1'",
+      "SELECT id, cf_id, access_mode FROM project_resources WHERE project_id = ? AND kind = 'd1'",
     )
     .bind(projectId)
-    .first();
-  if (!existingD1) {
-    const metaId = await resolveMetaDatabaseId(env);
-    if (metaId) {
-      await db
-        .prepare(
-          `INSERT INTO project_resources (id, project_id, kind, cf_id, name, access_mode)
-           VALUES (?, ?, 'd1', ?, ?, 'rest')`,
-        )
-        .bind(generateId(), projectId, metaId, META_DB_NAME)
-        .run();
-    }
+    .first<{ id: string; cf_id: string; access_mode: string }>();
+  if (!existingD1 && env.META) {
+    await db
+      .prepare(
+        `INSERT INTO project_resources (id, project_id, kind, cf_id, name, access_mode)
+         VALUES (?, ?, 'd1', ?, ?, 'binding')`,
+      )
+      .bind(generateId(), projectId, SHARED_META_CF_ID, META_DB_NAME)
+      .run();
+  } else if (
+    existingD1 &&
+    env.META &&
+    (existingD1.cf_id !== SHARED_META_CF_ID ||
+      existingD1.access_mode !== "binding")
+  ) {
+    // System project D1 is always instance META — upgrade legacy rest+UUID rows.
+    await db
+      .prepare(
+        `UPDATE project_resources
+         SET cf_id = ?, name = ?, access_mode = 'binding'
+         WHERE id = ?`,
+      )
+      .bind(SHARED_META_CF_ID, META_DB_NAME, existingD1.id)
+      .run();
   }
 
   const existingKv = await db

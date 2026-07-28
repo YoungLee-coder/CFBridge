@@ -9,8 +9,14 @@ import {
   type AppContext,
   type AppEnv,
 } from "../../lib/http";
-import * as cf from "../../lib/cf-account";
 import { CfApiError } from "../../lib/cf-account";
+import {
+  d1BackendQueryOfficial,
+  d1BackendRaw,
+  d1BackendRawOfficial,
+  resolveD1Backend,
+  type D1Backend,
+} from "../../lib/d1-backend";
 import {
   bindStmtArgs,
   buildStmtResult,
@@ -83,12 +89,13 @@ async function resolveSql(
   return text;
 }
 
+type ExecCtx = {
+  backend: D1Backend;
+  checkWrite: (sql: string) => HranaError | null;
+};
+
 async function execStmt(
-  ctx: {
-    env: AppEnv["Bindings"];
-    databaseId: string;
-    checkWrite: (sql: string) => HranaError | null;
-  },
+  ctx: ExecCtx,
   stmt: HranaStmt,
   stored: Map<number, string>,
 ): Promise<HranaStmtResult> {
@@ -97,7 +104,7 @@ async function execStmt(
   const denied = ctx.checkWrite(bound.sql);
   if (denied) throw new HranaProtoError(denied.message, denied.code ?? null);
 
-  const parts = await cf.d1Raw(ctx.env, ctx.databaseId, bound.sql, bound.params);
+  const parts = await d1BackendRaw(ctx.backend, bound.sql, bound.params);
   if (!parts.length) {
     return buildStmtResult([], [], undefined, stmt.want_rows !== false);
   }
@@ -112,11 +119,7 @@ async function execStmt(
 }
 
 async function execBatch(
-  ctx: {
-    env: AppEnv["Bindings"];
-    databaseId: string;
-    checkWrite: (sql: string) => HranaError | null;
-  },
+  ctx: ExecCtx,
   batch: HranaBatch,
   stored: Map<number, string>,
 ): Promise<HranaBatchResult> {
@@ -156,11 +159,7 @@ function toHranaError(e: unknown): HranaError {
 }
 
 async function handleStreamRequest(
-  ctx: {
-    env: AppEnv["Bindings"];
-    databaseId: string;
-    checkWrite: (sql: string) => HranaError | null;
-  },
+  ctx: ExecCtx,
   req: StreamRequest,
   stored: Map<number, string>,
   closed: { value: boolean },
@@ -192,7 +191,7 @@ async function handleStreamRequest(
       for (const s of statements) {
         const denied = ctx.checkWrite(s);
         if (denied) throw new HranaProtoError(denied.message, denied.code ?? null);
-        const parts = await cf.d1Raw(ctx.env, ctx.databaseId, s, []);
+        const parts = await d1BackendRaw(ctx.backend, s, []);
         const last = parts[parts.length - 1];
         if (last && (last.success === false || last.error)) {
           throw new HranaProtoError(
@@ -289,9 +288,12 @@ async function pipelineHandler(c: AppContext) {
   }
 
   const checkWrite = (sql: string) => assertCanWrite(c, sql);
-  const ctx = {
-    env: c.env,
-    databaseId: resource.cf_id,
+  const backend = resolveD1Backend(c.env, {
+    accessMode: resource.access_mode === "binding" ? "binding" : "rest",
+    cfId: resource.cf_id,
+  });
+  const ctx: ExecCtx = {
+    backend,
     checkWrite,
   };
 
@@ -441,14 +443,22 @@ async function handleCfD1(
   }
 
   try {
+    const backend = resolveD1Backend(c.env, {
+      accessMode: resource.access_mode === "binding" ? "binding" : "rest",
+      cfId: resource.cf_id,
+    });
     const result =
       mode === "query"
-        ? await cf.d1QueryOfficial(c.env, resource.cf_id, parsed.body)
-        : await cf.d1RawOfficial(c.env, resource.cf_id, parsed.body);
+        ? await d1BackendQueryOfficial(backend, parsed.body)
+        : await d1BackendRawOfficial(backend, parsed.body);
     return c.json(cfOk(result));
   } catch (e) {
     const message =
-      e instanceof CfApiError ? e.message : `D1 ${mode} failed`;
+      e instanceof CfApiError
+        ? e.message
+        : e instanceof Error
+          ? e.message
+          : `D1 ${mode} failed`;
     const status =
       e instanceof CfApiError && e.status >= 400 && e.status < 600
         ? e.status

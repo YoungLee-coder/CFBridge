@@ -433,8 +433,16 @@ export function splitSqlStatements(script: string): string[] {
 /**
  * Detect write-ish SQL for anon_readonly gating.
  * Intentionally conservative: WITH…INSERT etc. count as writes.
+ * Multi-statement scripts are split first so `SELECT 1; DELETE …` counts as a write
+ * (CF D1 REST executes semicolon-separated batches).
  */
 export function isWriteSql(sql: string): boolean {
+  const statements = splitSqlStatements(sql);
+  if (statements.length === 0) return isSingleWriteSql(sql);
+  return statements.some(isSingleWriteSql);
+}
+
+function isSingleWriteSql(sql: string): boolean {
   const stripped = sql
     .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/--[^\n]*/g, " ")

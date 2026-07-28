@@ -9,19 +9,18 @@ Replace `{origin}` with your Worker URL (e.g. `https://cfbridge.example.com`) an
 ### Data plane (`/v1`)
 
 - Header: `Authorization: Bearer <project_api_key>`
-- Redis only: query `?_token=<project_api_key>` is also accepted
 - Roles: `anon` (publishable) | `service_role` (secret)
 - New projects auto-mint one of each; plaintext is returned only on create
 - If the project has `anon_readonly` enabled (default for new projects), `anon` keys cannot write
 
 ### Admin (`/admin`)
 
-- Header: `Authorization: Bearer <session_token>` from `POST /admin/auth/login`
-- Or session cookie set by the Dashboard
+- Header: `Authorization: Bearer <session_token>` from `POST /admin/auth/login` (for curl / scripts)
+- Or HttpOnly session cookie set by login (Dashboard uses cookie only; `credentials: include`)
 
 ### Health
 
-- `GET /health` — no auth; returns `{ ok, ready, meta_reachable, needs_migration }`
+- `GET /health` — no auth; returns `{ ok: true }` only. Setup/migration details live under `/admin/setup/status`.
 
 ## Error envelopes
 
@@ -55,7 +54,7 @@ Upstash Redis REST–compatible subset. Storage backend is the project’s Cloud
 
 ### Supported commands
 
-`PING`, `GET`, `SET` (option `EX` only), `SETEX`, `DEL`, `EXISTS`, `MGET`, `MSET`, `EXPIRE`, `KEYS` (`*` or `prefix*` only), `SCAN`.
+`PING`, `GET`, `SET` (option `EX` only), `SETEX`, `DEL`, `EXISTS`, `MGET`, `MSET`, `EXPIRE`, `PERSIST`, `TTL`, `KEYS` (`*` or `prefix*` only), `SCAN`.
 
 ### Not supported
 
@@ -190,6 +189,13 @@ Bearer session token or cookie. Full operational setup is documented in the repo
 | POST | `/admin/projects/:id/resources/attach` | Attach existing CF id |
 | GET/POST | `/admin/projects/:id/keys` | List / mint API key (plaintext shown once) |
 | POST | `/admin/projects/:id/keys/:keyId/revoke` | Revoke key |
+| POST | `/admin/projects/:id/browser/redis` | Dashboard Redis argv proxy `{ argv }` → `{ result }` (service_role) |
+| POST | `/admin/projects/:id/browser/redis/keys` | Paginated key list `{ prefix?, cursor?, limit? }` → `KvListResponse` |
+| POST | `/admin/projects/:id/browser/redis/inspect` | Key inspect `{ key }` → value, metadata, TTL |
+| POST | `/admin/projects/:id/browser/d1/query` | Dashboard D1 SQL `{ sql, params? }` → CF query envelope |
+| POST | `/admin/projects/:id/browser/d1/schema` | Tables/views + `PRAGMA table_info` → `D1SchemaResponse` |
+
+Dashboard Redis/D1 browsers use the admin session only (not project API keys). TTL/`EX`/`SETEX`/`EXPIRE` still require ≥ 60 seconds (Cloudflare KV).
 
 ## AI / machine-readable docs
 
